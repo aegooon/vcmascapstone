@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { inject } from '@angular/core';
-import { DomainApiService } from '../../core/api/domain-api.service';
+import { ClientRecord, DomainApiService, PetLookupRecord } from '../../core/api/domain-api.service';
 
 export interface ScheduleItem {
   id: number;
   serverId?: string;
+  clientId?: string;
+  petId?: string;
   time: string;
   date: string;
   petName: string;
@@ -42,6 +44,8 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   isModalOpen = false;
   isEditMode = false;
   selectedScheduleId: number | null = null;
+  clients: ClientRecord[] = [];
+  pets: PetLookupRecord[] = [];
 
   // Schedule Data Store (Mock Data matching VCMAS design)
   schedules: ScheduleItem[] = [
@@ -112,6 +116,8 @@ export class SchedulingComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.api.appointments().subscribe({ next: ({ data }) => { this.schedules = data.appointments.map((item, index) => ({ id: index + 1, serverId: item.id, time: item.appointment_time, date: item.appointment_date, petName: item.pet_name, breed: item.breed ?? '', ownerName: item.owner_name, reason: item.reason, room: item.room, status: this.displayStatus(item.status), statusColor: 'bg-blue-600' })); } });
+    this.api.clients().subscribe({ next: ({ data }) => { this.clients = data.clients; } });
+    this.api.pets().subscribe({ next: ({ data }) => { this.pets = data.pets; } });
     this.timeInterval = setInterval(() => {
       this.currentTime = new Date();
     }, 60000);
@@ -197,6 +203,10 @@ export class SchedulingComponent implements OnInit, OnDestroy {
         const item = this.schedules[index];
         if (item.serverId) this.api.updateAppointmentStatus(item.serverId, this.apiStatus(this.formData.status)).subscribe({ next: () => { this.schedules[index] = { id: this.selectedScheduleId as number, serverId: item.serverId, ...this.formData }; this.closeModal(); } });
       }
+    } else if (this.formData.clientId && this.formData.petId) {
+      const start = `${this.formData.date} ${this.to24Hour(this.formData.time)}:00`;
+      const end = `${this.formData.date} ${this.to24Hour(this.formData.time, 30)}:00`;
+      this.api.createAppointment({ client_id: this.formData.clientId, pet_id: this.formData.petId, starts_at: start, ends_at: end, reason: this.formData.reason, room: this.formData.room }).subscribe({ next: () => { this.closeModal(); this.api.appointments().subscribe(({ data }) => { this.schedules = data.appointments.map((item, index) => ({ id: index + 1, serverId: item.id, time: item.appointment_time, date: item.appointment_date, petName: item.pet_name, breed: item.breed ?? '', ownerName: item.owner_name, reason: item.reason, room: item.room, status: this.displayStatus(item.status), statusColor: 'bg-blue-600' })); }); } });
     } else {
       // Create
       const newId = this.schedules.length > 0
@@ -220,6 +230,26 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   private apiStatus(status: ScheduleItem['status']): 'requested' | 'scheduled' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' {
     const values: Record<ScheduleItem['status'], 'requested' | 'scheduled' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'> = { Scheduled: 'scheduled', 'Checked In': 'checked_in', 'In Progress': 'in_progress', Completed: 'completed', Cancelled: 'cancelled' };
     return values[status];
+  }
+
+  selectPet(petId: string): void {
+    this.formData.petId = petId;
+    this.formData.petName = this.pets.find((pet) => pet.id === petId)?.name ?? '';
+  }
+
+  selectClient(clientId: string): void {
+    this.formData.clientId = clientId;
+    this.formData.ownerName = this.clients.find((client) => client.id === clientId)?.full_name ?? '';
+  }
+
+  private to24Hour(value: string, addMinutes = 0): string {
+    const match = value.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return '09:00';
+    let hours = Number(match[1]) % 12;
+    hours += match[3].toUpperCase() === 'PM' ? 12 : 0;
+    const date = new Date(2000, 0, 1, hours, Number(match[2]));
+    date.setMinutes(date.getMinutes() + addMinutes);
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   }
 
   // Helper for status badge styling

@@ -118,6 +118,18 @@ try {
         respond(200, ['data' => ['clinic' => $settings ?: null]]);
     }
 
+    if ($method === 'GET' && $resource === 'clients') {
+        requireUser($pdo);
+        $rows = $pdo->query('SELECT c.id, c.full_name, c.email FROM clients c ORDER BY c.full_name')->fetchAll();
+        respond(200, ['data' => ['clients' => $rows]]);
+    }
+
+    if ($method === 'GET' && $resource === 'pets') {
+        requireUser($pdo);
+        $rows = $pdo->query('SELECT p.id, p.client_id, p.name, p.species, p.breed FROM pets p WHERE p.status = "active" ORDER BY p.name')->fetchAll();
+        respond(200, ['data' => ['pets' => $rows]]);
+    }
+
     if ($method === 'GET' && $resource === 'appointments') {
         requireUser($pdo);
         $rows = $pdo->query('SELECT a.id, DATE_FORMAT(a.starts_at, "%Y-%m-%d") AS appointment_date, DATE_FORMAT(a.starts_at, "%h:%i %p") AS appointment_time, p.name AS pet_name, p.breed, c.full_name AS owner_name, COALESCE(a.reason, "General appointment") AS reason, COALESCE(a.room, "Unassigned") AS room, a.status FROM appointments a JOIN pets p ON p.id = a.pet_id JOIN clients c ON c.id = a.client_id ORDER BY a.starts_at')->fetchAll();

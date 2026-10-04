@@ -49,6 +49,9 @@ export interface AppointmentRecord {
   status: string;
 }
 
+export interface ClientRecord { id: string; full_name: string; email: string; }
+export interface PetLookupRecord { id: string; client_id: string; name: string; species: string; breed: string | null; }
+
 @Injectable({ providedIn: 'root' })
 export class DomainApiService {
   private readonly http = inject(HttpClient);
@@ -103,6 +106,14 @@ export class DomainApiService {
 
   appointments(): Observable<ApiEnvelope<{ appointments: AppointmentRecord[] }>> {
     return this.http.get<ApiEnvelope<{ appointments: AppointmentRecord[] }>>('/api/v1/appointments');
+  }
+
+  clients(): Observable<ApiEnvelope<{ clients: ClientRecord[] }>> {
+    return this.http.get<ApiEnvelope<{ clients: ClientRecord[] }>>('/api/v1/clients');
+  }
+
+  pets(): Observable<ApiEnvelope<{ pets: PetLookupRecord[] }>> {
+    return this.http.get<ApiEnvelope<{ pets: PetLookupRecord[] }>>('/api/v1/pets');
   }
 
   createAppointment(payload: { client_id: string; pet_id: string; starts_at: string; ends_at: string; reason?: string; room?: string; veterinarian_id?: string; service_id?: string }): Observable<ApiEnvelope<{ appointment_id: string; status: string }>> {
