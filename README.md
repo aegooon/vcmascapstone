@@ -1,5 +1,9 @@
 # VCMASCapstone
 
+This project uses Angular for the web application and a PHP REST API backed by the
+MariaDB service included with XAMPP. See [`docs/XAMPP_DEPLOYMENT.md`](docs/XAMPP_DEPLOYMENT.md)
+for local setup, migrations, seed data, and Apache rewrite instructions.
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.7.
 
 ## Development server
