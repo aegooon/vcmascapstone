@@ -7,6 +7,7 @@ import { DomainApiService } from '../../core/api/domain-api.service';
 
 export interface ScheduleItem {
   id: number;
+  serverId?: string;
   time: string;
   date: string;
   petName: string;
@@ -110,7 +111,7 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   constructor(private router: Router) {}
 
   ngOnInit(): void {
-    this.api.appointments().subscribe({ next: ({ data }) => { this.schedules = data.appointments.map((item, index) => ({ id: index + 1, time: item.appointment_time, date: item.appointment_date, petName: item.pet_name, breed: item.breed ?? '', ownerName: item.owner_name, reason: item.reason, room: item.room, status: this.displayStatus(item.status), statusColor: 'bg-blue-600' })); } });
+    this.api.appointments().subscribe({ next: ({ data }) => { this.schedules = data.appointments.map((item, index) => ({ id: index + 1, serverId: item.id, time: item.appointment_time, date: item.appointment_date, petName: item.pet_name, breed: item.breed ?? '', ownerName: item.owner_name, reason: item.reason, room: item.room, status: this.displayStatus(item.status), statusColor: 'bg-blue-600' })); } });
     this.timeInterval = setInterval(() => {
       this.currentTime = new Date();
     }, 60000);
@@ -193,10 +194,8 @@ export class SchedulingComponent implements OnInit, OnDestroy {
       // Update
       const index = this.schedules.findIndex(s => s.id === this.selectedScheduleId);
       if (index !== -1) {
-        this.schedules[index] = {
-          id: this.selectedScheduleId,
-          ...this.formData
-        };
+        const item = this.schedules[index];
+        if (item.serverId) this.api.updateAppointmentStatus(item.serverId, this.apiStatus(this.formData.status)).subscribe({ next: () => { this.schedules[index] = { id: this.selectedScheduleId as number, serverId: item.serverId, ...this.formData }; this.closeModal(); } });
       }
     } else {
       // Create
@@ -214,9 +213,13 @@ export class SchedulingComponent implements OnInit, OnDestroy {
 
   // DELETE
   deleteSchedule(id: number): void {
-    if (confirm('Are you sure you want to delete this schedule entry?')) {
-      this.schedules = this.schedules.filter(s => s.id !== id);
-    }
+    const item = this.schedules.find(schedule => schedule.id === id);
+    if (item?.serverId) this.api.cancelAppointment(item.serverId).subscribe({ next: () => { this.schedules = this.schedules.map(schedule => schedule.id === id ? { ...schedule, status: 'Cancelled' } : schedule); } });
+  }
+
+  private apiStatus(status: ScheduleItem['status']): 'requested' | 'scheduled' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' {
+    const values: Record<ScheduleItem['status'], 'requested' | 'scheduled' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'> = { Scheduled: 'scheduled', 'Checked In': 'checked_in', 'In Progress': 'in_progress', Completed: 'completed', Cancelled: 'cancelled' };
+    return values[status];
   }
 
   // Helper for status badge styling

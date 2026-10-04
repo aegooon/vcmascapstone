@@ -153,6 +153,28 @@ try {
         respond(201, ['data' => ['appointment_id' => $id, 'status' => 'requested']]);
     }
 
+    if ($method === 'PATCH' && ($parts[count($parts) - 2] ?? '') === 'appointments') {
+        requireUser($pdo);
+        $appointmentId = $resource;
+        $data = input();
+        $allowed = ['requested', 'scheduled', 'checked_in', 'in_progress', 'completed', 'cancelled', 'no_show'];
+        $status = (string) ($data['status'] ?? '');
+        if (!in_array($status, $allowed, true)) respond(422, ['error' => ['code' => 'INVALID_STATUS', 'message' => 'Unsupported appointment status.']]);
+        $stmt = $pdo->prepare('UPDATE appointments SET status = :status, cancellation_reason = :reason WHERE id = :id AND status NOT IN ("completed", "cancelled", "no_show")');
+        $stmt->execute(['id' => $appointmentId, 'status' => $status, 'reason' => $status === 'cancelled' ? trim((string) ($data['cancellation_reason'] ?? '')) : null]);
+        if ($stmt->rowCount() === 0) respond(409, ['error' => ['code' => 'STATUS_TRANSITION_REJECTED', 'message' => 'This appointment cannot move to the requested status.']]);
+        respond(200, ['data' => ['appointment_id' => $appointmentId, 'status' => $status]]);
+    }
+
+    if ($method === 'DELETE' && ($parts[count($parts) - 2] ?? '') === 'appointments') {
+        requireUser($pdo);
+        $appointmentId = $resource;
+        $stmt = $pdo->prepare('UPDATE appointments SET status = "cancelled", cancellation_reason = :reason WHERE id = :id AND status NOT IN ("completed", "cancelled", "no_show")');
+        $stmt->execute(['id' => $appointmentId, 'reason' => trim((string) (input()['reason'] ?? 'Cancelled by staff'))]);
+        if ($stmt->rowCount() === 0) respond(409, ['error' => ['code' => 'CANNOT_CANCEL', 'message' => 'This appointment cannot be cancelled.']]);
+        respond(200, ['data' => ['appointment_id' => $appointmentId, 'status' => 'cancelled']]);
+    }
+
     if ($method === 'GET' && $resource === 'inventory') {
         requireUser($pdo);
         $rows = $pdo->query('SELECT id, sku, name, category, unit, quantity_on_hand, reorder_level, unit_cost, client_price, chargeable, active, updated_at FROM inventory_items WHERE active = 1 ORDER BY name')->fetchAll();

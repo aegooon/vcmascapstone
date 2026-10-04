@@ -108,4 +108,12 @@ export class DomainApiService {
   createAppointment(payload: { client_id: string; pet_id: string; starts_at: string; ends_at: string; reason?: string; room?: string; veterinarian_id?: string; service_id?: string }): Observable<ApiEnvelope<{ appointment_id: string; status: string }>> {
     return this.http.post<ApiEnvelope<{ appointment_id: string; status: string }>>('/api/v1/appointments', payload);
   }
+
+  updateAppointmentStatus(id: string, status: 'requested' | 'scheduled' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show', cancellation_reason?: string): Observable<ApiEnvelope<{ appointment_id: string; status: string }>> {
+    return this.http.patch<ApiEnvelope<{ appointment_id: string; status: string }>>(`/api/v1/appointments/${id}`, { status, cancellation_reason });
+  }
+
+  cancelAppointment(id: string, reason = 'Cancelled by staff'): Observable<ApiEnvelope<{ appointment_id: string; status: string }>> {
+    return this.http.delete<ApiEnvelope<{ appointment_id: string; status: string }>>(`/api/v1/appointments/${id}`, { body: { reason } });
+  }
 }
