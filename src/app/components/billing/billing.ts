@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DomainApiService, InvoiceRecord, PaymentRecord } from '../../core/api/domain-api.service';
+import { ClientRecord, DomainApiService, InvoiceRecord, PaymentRecord, PetLookupRecord } from '../../core/api/domain-api.service';
 
 @Component({
   imports: [FormsModule],
@@ -20,10 +20,19 @@ export class Billing {
   payments: PaymentRecord[] = [];
   selectedPayment: PaymentRecord | null = null;
   refundReason = '';
+  clients: ClientRecord[] = [];
+  pets: PetLookupRecord[] = [];
+  invoiceClientId = '';
+  invoicePetId = '';
+  invoiceDescription = '';
+  invoiceQuantity = 1;
+  invoiceUnitPrice = 0;
 
   constructor() {
     this.api.invoices().subscribe({ next: (response) => { this.invoices = response.data.invoices; this.loading = false; }, error: () => { this.error = 'Unable to load invoices.'; this.loading = false; } });
     this.api.payments().subscribe({ next: ({ data }) => { this.payments = data.payments; } });
+    this.api.clients().subscribe({ next: ({ data }) => { this.clients = data.clients; } });
+    this.api.pets().subscribe({ next: ({ data }) => { this.pets = data.pets; } });
   }
 
   selectInvoice(invoice: InvoiceRecord): void {
@@ -51,5 +60,14 @@ export class Billing {
   refundPayment(): void {
     if (!this.selectedPayment || !this.refundReason.trim()) return;
     this.api.refundPayment(this.selectedPayment.id, { amount: Number(this.selectedPayment.amount), reason: this.refundReason, client_request_id: `refund-${this.selectedPayment.id}-${Date.now()}` }).subscribe({ next: () => { this.paymentMessage = 'Refund recorded successfully.'; this.selectedPayment = null; this.api.payments().subscribe(({ data }) => { this.payments = data.payments; }); }, error: () => { this.paymentMessage = 'Unable to record this refund.'; } });
+  }
+
+  createInvoice(): void {
+    if (!this.invoiceClientId || !this.invoiceDescription.trim() || this.invoiceQuantity <= 0 || this.invoiceUnitPrice < 0) return;
+    this.api.createInvoice({ client_id: this.invoiceClientId, pet_id: this.invoicePetId || undefined, lines: [{ description: this.invoiceDescription, quantity: this.invoiceQuantity, unit_price: this.invoiceUnitPrice }] }).subscribe({ next: () => { this.paymentMessage = 'Invoice created successfully.'; this.invoiceDescription = ''; this.invoiceQuantity = 1; this.invoiceUnitPrice = 0; this.api.invoices().subscribe(({ data }) => { this.invoices = data.invoices; }); }, error: () => { this.paymentMessage = 'Unable to create invoice.'; } });
+  }
+
+  voidInvoice(invoice: InvoiceRecord): void {
+    this.api.voidInvoice(invoice.id).subscribe({ next: () => { invoice.status = 'void'; invoice.balance_due = '0.00'; this.paymentMessage = 'Invoice voided successfully.'; }, error: () => { this.paymentMessage = 'Unable to void invoice.'; } });
   }
 }
