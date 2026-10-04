@@ -17,6 +17,7 @@ export interface InventoryRecord {
   active: boolean;
   updated_at: string;
 }
+export interface InventoryTransactionRecord { id: string; type: string; quantity_delta: string; quantity_before: string; quantity_after: string; reason: string; created_at: string; item_name: string; invoice_id: string | null; }
 
 export interface InvoiceRecord {
   id: string;
@@ -36,6 +37,7 @@ export interface PatientRecord {
   client_name: string;
   last_visit: string | null;
 }
+export interface EmrVisitRecord { id: string; visited_at: string; clinical_notes: string; diagnosis: string | null; treatment_plan: string | null; follow_up_instructions: string | null; author_name: string; }
 
 export interface AppointmentRecord {
   id: string;
@@ -76,6 +78,10 @@ export class DomainApiService {
     return this.http.post<ApiEnvelope<{ transaction_id: string; invoice_id: string | null; quantity_after: number; idempotent: boolean }>>('/api/v1/inventory/transactions', payload);
   }
 
+  inventoryTransactions(): Observable<ApiEnvelope<{ transactions: InventoryTransactionRecord[] }>> {
+    return this.http.get<ApiEnvelope<{ transactions: InventoryTransactionRecord[] }>>('/api/v1/inventory/transactions');
+  }
+
   invoices(): Observable<ApiEnvelope<{ invoices: InvoiceRecord[] }>> {
     return this.http.get<ApiEnvelope<{ invoices: InvoiceRecord[] }>>('/api/v1/invoices');
   }
@@ -102,6 +108,10 @@ export class DomainApiService {
 
   createEmrVisit(payload: { pet_id: string; clinical_notes: string; diagnosis?: string; treatment_plan?: string; follow_up_instructions?: string }): Observable<ApiEnvelope<{ visit_id: string; pet_id: string }>> {
     return this.http.post<ApiEnvelope<{ visit_id: string; pet_id: string }>>('/api/v1/emr/visits', payload);
+  }
+
+  emrVisits(petId: string): Observable<ApiEnvelope<{ visits: EmrVisitRecord[] }>> {
+    return this.http.get<ApiEnvelope<{ visits: EmrVisitRecord[] }>>(`/api/v1/pets/${petId}/visits`);
   }
 
   appointments(): Observable<ApiEnvelope<{ appointments: AppointmentRecord[] }>> {

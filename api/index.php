@@ -275,6 +275,12 @@ try {
         respond(201, ['data' => ['transaction_id' => $transactionId, 'invoice_id' => $invoiceId, 'quantity_after' => $after, 'idempotent' => false]]);
     }
 
+    if ($method === 'GET' && $resource === 'transactions') {
+        requireUser($pdo);
+        $rows = $pdo->query('SELECT t.id, t.type, t.quantity_delta, t.quantity_before, t.quantity_after, t.reason, t.created_at, i.name AS item_name, t.invoice_id FROM inventory_transactions t JOIN inventory_items i ON i.id = t.inventory_item_id ORDER BY t.created_at DESC LIMIT 100')->fetchAll();
+        respond(200, ['data' => ['transactions' => $rows]]);
+    }
+
     if ($method === 'GET' && $resource === 'invoices') {
         $current = requireUser($pdo);
         if ($current['role'] === 'client') {
@@ -399,6 +405,14 @@ try {
         $visitId = uuid();
         $pdo->prepare('INSERT INTO emr_visits (id, pet_id, author_id, visited_at, weight_kg, temperature_c, clinical_notes, diagnosis, treatment_plan, follow_up_instructions) VALUES (:id, :pet, :author, COALESCE(:visited_at, UTC_TIMESTAMP(6)), :weight, :temperature, :notes, :diagnosis, :treatment, :follow_up)')->execute(['id' => $visitId, 'pet' => $petId, 'author' => $current['id'], 'visited_at' => trim((string) ($data['visited_at'] ?? '')) ?: null, 'weight' => ($data['weight_kg'] ?? null) !== null ? (float) $data['weight_kg'] : null, 'temperature' => ($data['temperature_c'] ?? null) !== null ? (float) $data['temperature_c'] : null, 'notes' => $notes, 'diagnosis' => trim((string) ($data['diagnosis'] ?? '')) ?: null, 'treatment' => trim((string) ($data['treatment_plan'] ?? '')) ?: null, 'follow_up' => trim((string) ($data['follow_up_instructions'] ?? '')) ?: null]);
         respond(201, ['data' => ['visit_id' => $visitId, 'pet_id' => $petId]]);
+    }
+
+    if ($method === 'GET' && $resource === 'visits' && ($parts[count($parts) - 2] ?? '') === 'pets') {
+        requireUser($pdo);
+        $petId = $parts[count($parts) - 2];
+        $stmt = $pdo->prepare('SELECT v.id, v.visited_at, v.clinical_notes, v.diagnosis, v.treatment_plan, v.follow_up_instructions, u.full_name AS author_name FROM emr_visits v JOIN users u ON u.id = v.author_id WHERE v.pet_id = :pet ORDER BY v.visited_at DESC');
+        $stmt->execute(['pet' => $petId]);
+        respond(200, ['data' => ['visits' => $stmt->fetchAll()]]);
     }
 
     respond(404, ['error' => ['code' => 'NOT_FOUND', 'message' => 'The requested endpoint does not exist.']]);

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DomainApiService, PatientRecord } from '../../core/api/domain-api.service';
+import { DomainApiService, EmrVisitRecord, PatientRecord } from '../../core/api/domain-api.service';
 
 @Component({
   imports: [FormsModule],
@@ -21,6 +21,7 @@ export class Emr {
   treatmentPlan = '';
   followUp = '';
   saveMessage = '';
+  visits: EmrVisitRecord[] = [];
 
   get filteredPatients(): PatientRecord[] {
     const query = this.searchTerm.trim().toLowerCase();
@@ -31,12 +32,13 @@ export class Emr {
   selectPatient(patient: PatientRecord): void {
     this.selectedPatient = patient;
     this.saveMessage = '';
+    this.api.emrVisits(patient.id).subscribe({ next: ({ data }) => { this.visits = data.visits; } });
   }
 
   saveVisit(): void {
     if (!this.selectedPatient || !this.clinicalNotes.trim()) return;
     this.api.createEmrVisit({ pet_id: this.selectedPatient.id, clinical_notes: this.clinicalNotes, diagnosis: this.diagnosis, treatment_plan: this.treatmentPlan, follow_up_instructions: this.followUp }).subscribe({
-      next: () => { this.saveMessage = 'Clinical visit saved.'; this.clinicalNotes = ''; this.diagnosis = ''; this.treatmentPlan = ''; this.followUp = ''; this.selectedPatient = null; },
+      next: () => { this.saveMessage = 'Clinical visit saved.'; this.clinicalNotes = ''; this.diagnosis = ''; this.treatmentPlan = ''; this.followUp = ''; if (this.selectedPatient) this.api.emrVisits(this.selectedPatient.id).subscribe(({ data }) => { this.visits = data.visits; }); },
       error: () => { this.saveMessage = 'Unable to save the clinical visit.'; },
     });
   }

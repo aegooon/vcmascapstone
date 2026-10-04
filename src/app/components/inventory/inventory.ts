@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { DomainApiService } from '../../core/api/domain-api.service';
+import { DomainApiService, InventoryTransactionRecord } from '../../core/api/domain-api.service';
 
 export interface InventoryItem {
   id: number;
@@ -50,6 +50,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   ];
 
   categories: string[] = ['All', 'Drugs', 'Medical Items', 'Laboratory Equipment', 'Pet Food'];
+  transactions: InventoryTransactionRecord[] = [];
 
   private readonly api = inject(DomainApiService);
 
@@ -59,6 +60,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.api.inventory().subscribe({ next: ({ data }) => {
       this.items = data.items.map((item, index) => ({ id: index + 1, serverId: item.id, name: item.name, category: this.displayCategory(item.category), stock: Number(item.quantity_on_hand), unit: item.unit, price: Number(item.client_price), lastUpdated: item.updated_at.slice(0, 10) }));
     } });
+    this.api.inventoryTransactions().subscribe({ next: ({ data }) => { this.transactions = data.transactions; } });
     this.timeInterval = setInterval(() => {
       this.currentTime = new Date();
     }, 60000);
