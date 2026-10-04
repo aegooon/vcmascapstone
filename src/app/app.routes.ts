@@ -12,6 +12,7 @@ export const routes: Routes = [
   {
     path: 'client',
     children: [
+      { path: '', loadComponent: () => import('./components/client/client-landing/client-landing').then(({ ClientLandingComponent }) => ClientLandingComponent) },
       { path: 'login', loadComponent: () => import('./components/client/client-login/client-login').then(({ ClientLoginComponent }) => ClientLoginComponent) },
       { path: 'register', loadComponent: () => import('./components/client/client-register/client-register').then(({ ClientRegisterComponent }) => ClientRegisterComponent) },
       { path: 'dashboard', canActivate: [clientGuard], loadComponent: () => import('./components/client/client-dashboard/client-dashboard').then(({ ClientDashboardComponent }) => ClientDashboardComponent) },

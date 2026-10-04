@@ -1,0 +1,36 @@
+<main class="min-h-screen bg-slate-50 text-slate-800">
+  <header class="border-b border-slate-200 bg-white" aria-label="Clinic header">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 lg:px-8">
+      <a routerLink="/client" class="flex items-center gap-3 text-blue-950" aria-label="VCMAS home">
+        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-900 text-lg font-black text-white">V</span>
+        <span><strong class="block text-lg tracking-tight">VCMAS</strong><span class="text-xs text-slate-500">Veterinary Clinic</span></span>
+      </a>
+      <nav class="flex items-center gap-3 text-sm font-semibold" aria-label="Primary navigation">
+        <a href="#services" class="hidden text-slate-600 hover:text-blue-900 sm:inline">Services</a>
+        <a href="#contact" class="hidden text-slate-600 hover:text-blue-900 sm:inline">Contact</a>
+        <a routerLink="/client/login" class="rounded-lg bg-blue-900 px-4 py-2 text-white hover:bg-blue-800">Client Login</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="bg-blue-950 text-white" aria-labelledby="hero-heading">
+    <div class="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:py-20 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-24">
+      <div class="max-w-2xl self-center">
+        <p class="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-red-300">Care for every chapter</p>
+        <h1 id="hero-heading" class="text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">Thoughtful veterinary care for the pets you love.</h1>
+        <p class="mt-6 max-w-xl text-base leading-7 text-blue-100 sm:text-lg">From preventive visits to recovery and boarding, our clinic gives every pet patient attentive care in one welcoming place.</p>
+        <div class="mt-8 flex flex-wrap gap-3"><a routerLink="/client/register" class="rounded-lg bg-red-500 px-5 py-3 font-bold text-white hover:bg-red-400">Create an account</a><a href="#services" class="rounded-lg border border-blue-300 px-5 py-3 font-bold text-white hover:bg-blue-900">Explore services</a></div>
+      </div>
+      <div class="rounded-3xl border border-blue-800 bg-blue-900/60 p-7 shadow-xl"><p class="text-sm font-bold uppercase tracking-widest text-blue-200">Clinic hours</p><p class="mt-3 text-3xl font-black">9:00 AM – 6:30 PM</p><div class="my-6 h-px bg-blue-800"></div><p class="text-sm text-blue-100">195 Rt. Aglipay St., Brgy. Poblacion,<br>Mandaluyong City</p><p class="mt-5 text-sm font-semibold text-white">09311318670 · 86717479</p></div>
+    </div>
+  </section>
+
+  <section id="services" class="mx-auto max-w-7xl px-5 py-16 lg:px-8" aria-labelledby="services-heading">
+    <div class="max-w-2xl"><p class="text-sm font-bold uppercase tracking-widest text-red-600">Our services</p><h2 id="services-heading" class="mt-2 text-3xl font-black text-blue-950 sm:text-4xl">Complete care under one roof.</h2><p class="mt-4 text-slate-600">Choose the support your pet needs today and throughout their life.</p></div>
+    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      @for (service of services; track service[0]) { <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"><div class="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 font-black text-blue-900">{{ $index + 1 }}</div><h3 class="font-bold text-blue-950">{{ service[0] }}</h3><p class="mt-2 text-sm leading-6 text-slate-600">{{ service[1] }}</p></article> }
+    </div>
+  </section>
+
+  <footer id="contact" class="bg-white" aria-labelledby="contact-heading"><div class="mx-auto flex max-w-7xl flex-wrap justify-between gap-8 border-t border-slate-200 px-5 py-10 lg:px-8"><div><h2 id="contact-heading" class="font-black text-blue-950">Visit VCMAS Veterinary Clinic</h2><p class="mt-2 text-sm text-slate-600">195 Rt. Aglipay St., Brgy. Poblacion, Mandaluyong City</p></div><div class="text-sm text-slate-600"><p><strong class="text-slate-800">Open:</strong> 9:00 AM – 6:30 PM</p><p class="mt-1"><strong class="text-slate-800">Call:</strong> 09311318670 · 86717479</p></div></div></footer>
+</main>

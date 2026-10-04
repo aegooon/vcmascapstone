@@ -1,0 +1,5 @@
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; overflow-x: hidden; background: #f8fafc; }
+*, *::before, *::after { box-sizing: border-box; }
+:focus-visible { outline: 3px solid #f59e0b; outline-offset: 3px; }
+button:disabled { cursor: not-allowed; opacity: 0.65; }
