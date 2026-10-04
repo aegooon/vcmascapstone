@@ -13,10 +13,10 @@
 Build the Angular application and copy the contents of `dist/VCMAS-Capstone/browser` into `C:\xampp\htdocs\vcmas`. Configure `/api/v1` to rewrite to `api/index.php`. The included `.htaccess` files require Apache `mod_rewrite`, `mod_headers`, and `AllowOverride All`.
 
 ```powershell
-npm run build
+npm run build -- --base-href /vcmas/
 ```
 
-The Angular application expects API requests at `/api/v1`. When the frontend and API use different origins, update `allowed_origin` in `api/config.local.php` and keep credentials enabled for the session cookie. The API rejects unapproved origins and sends no-store/security headers.
+Copy the generated browser files into `C:\xampp\htdocs\vcmas` and copy the `api` directory into `C:\xampp\htdocs\api`. The Angular subfolder rewrite serves direct routes such as `/vcmas/login` from `index.html`. The Angular application expects API requests at `/api/v1`. When the frontend and API use different origins, update `allowed_origin` in `api/config.local.php` and keep credentials enabled for the session cookie. The API rejects unapproved origins and sends no-store/security headers.
 
 ## Development accounts
 
