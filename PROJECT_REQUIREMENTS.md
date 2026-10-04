@@ -5,7 +5,7 @@
 **Version:** 1.0  
 **Status:** Baseline for all future revisions  
 
-**Implementation progress:** P0-01 through P0-05 are complete. P0-06 and P0-07 now have the XAMPP PHP session API, Angular authentication service, session restoration, and route guards implemented. P0-08 through P0-15 and all P1/P2 work remain active until their acceptance criteria are verified.
+**Implementation progress:** P0-01 through P0-05 are complete. P0-06 and P0-07 now have the XAMPP PHP session API, Angular authentication service, session restoration, and route guards implemented. P0-08 is partially implemented through typed API services and credentials handling. P0-09 and P0-11 have the server transaction endpoint foundation, including row locking, negative-stock protection, idempotency, and billable patient-usage invoice creation; full UI workflows and reconciliation verification remain active. P0-10 and P0-12 are read-only foundations. P0-13 through P0-15 and all P1/P2 work remain active until their acceptance criteria are verified.
 **Date:** 2026-10-04
 
 ## 1. Purpose

@@ -124,6 +124,55 @@ try {
         respond(200, ['data' => ['items' => $rows]]);
     }
 
+    if ($method === 'POST' && $resource === 'transactions') {
+        $current = requireUser($pdo);
+        $data = input();
+        $itemId = trim((string) ($data['inventory_item_id'] ?? ''));
+        $type = (string) ($data['type'] ?? '');
+        $quantity = (float) ($data['quantity'] ?? 0);
+        $reason = trim((string) ($data['reason'] ?? ''));
+        $requestId = trim((string) ($data['client_request_id'] ?? ''));
+        $allowedTypes = ['purchase', 'patient_usage', 'return', 'wastage', 'correction'];
+        if ($itemId === '' || !in_array($type, $allowedTypes, true) || $quantity <= 0 || $reason === '' || $requestId === '') {
+            respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'Item, transaction type, positive quantity, reason, and client_request_id are required.']]);
+        }
+        $existing = $pdo->prepare('SELECT id, invoice_id FROM inventory_transactions WHERE client_request_id = :request_id');
+        $existing->execute(['request_id' => $requestId]);
+        if ($duplicate = $existing->fetch()) respond(200, ['data' => ['transaction_id' => $duplicate['id'], 'invoice_id' => $duplicate['invoice_id'], 'idempotent' => true]]);
+
+        $pdo->beginTransaction();
+        $itemStmt = $pdo->prepare('SELECT * FROM inventory_items WHERE id = :id AND active = 1 FOR UPDATE');
+        $itemStmt->execute(['id' => $itemId]);
+        $item = $itemStmt->fetch();
+        if (!$item) { $pdo->rollBack(); respond(404, ['error' => ['code' => 'ITEM_NOT_FOUND', 'message' => 'The inventory item was not found.']]); }
+        $delta = in_array($type, ['purchase', 'return'], true) ? $quantity : -$quantity;
+        if ($type === 'correction') $delta = (float) ($data['quantity_delta'] ?? 0);
+        $before = (float) $item['quantity_on_hand'];
+        $after = $before + $delta;
+        if ($after < 0) { $pdo->rollBack(); respond(409, ['error' => ['code' => 'INSUFFICIENT_STOCK', 'message' => 'The transaction would create negative stock.']]); }
+        $patientId = trim((string) ($data['patient_id'] ?? '')) ?: null;
+        if ($type === 'patient_usage' && $patientId === null) { $pdo->rollBack(); respond(422, ['error' => ['code' => 'PATIENT_REQUIRED', 'message' => 'Patient usage must identify a patient.']]); }
+        $invoiceId = null;
+        if ($type === 'patient_usage' && (bool) $item['chargeable']) {
+            $clientStmt = $pdo->prepare('SELECT client_id FROM pets WHERE id = :pet');
+            $clientStmt->execute(['pet' => $patientId]);
+            $clientId = $clientStmt->fetchColumn();
+            if (!$clientId) { $pdo->rollBack(); respond(422, ['error' => ['code' => 'PATIENT_NOT_FOUND', 'message' => 'The patient was not found.']]); }
+            $invoiceId = uuid();
+            $invoiceNumber = 'INV-' . gmdate('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
+            $pdo->prepare('INSERT INTO invoices (id, invoice_number, client_id, pet_id, status, subtotal, total, balance_due, created_by) VALUES (:id, :number, :client, :pet, "issued", :total, :total, :total, :user)')->execute(['id' => $invoiceId, 'number' => $invoiceNumber, 'client' => $clientId, 'pet' => $patientId, 'total' => round($quantity * (float) $item['client_price'], 2), 'user' => $current['id']]);
+        }
+        $transactionId = uuid();
+        $pdo->prepare('INSERT INTO inventory_transactions (id, inventory_item_id, type, quantity_delta, quantity_before, quantity_after, unit_cost, client_price, patient_id, invoice_id, reason, client_request_id, created_by) VALUES (:id, :item, :type, :delta, :before, :after, :cost, :price, :patient, :invoice, :reason, :request_id, :user)')->execute(['id' => $transactionId, 'item' => $itemId, 'type' => $type, 'delta' => $delta, 'before' => $before, 'after' => $after, 'cost' => $item['unit_cost'], 'price' => $item['client_price'], 'patient' => $patientId, 'invoice' => $invoiceId, 'reason' => $reason, 'request_id' => $requestId, 'user' => $current['id']]);
+        if ($invoiceId !== null) {
+            $lineTotal = round($quantity * (float) $item['client_price'], 2);
+            $pdo->prepare('INSERT INTO invoice_lines (id, invoice_id, line_type, description, inventory_transaction_id, quantity, unit_price, line_total) VALUES (:id, :invoice, "inventory", :description, :transaction, :quantity, :price, :total)')->execute(['id' => uuid(), 'invoice' => $invoiceId, 'description' => $item['name'], 'transaction' => $transactionId, 'quantity' => $quantity, 'price' => $item['client_price'], 'total' => $lineTotal]);
+        }
+        $pdo->prepare('UPDATE inventory_items SET quantity_on_hand = :quantity WHERE id = :id')->execute(['quantity' => $after, 'id' => $itemId]);
+        $pdo->commit();
+        respond(201, ['data' => ['transaction_id' => $transactionId, 'invoice_id' => $invoiceId, 'quantity_after' => $after, 'idempotent' => false]]);
+    }
+
     if ($method === 'GET' && $resource === 'invoices') {
         $current = requireUser($pdo);
         if ($current['role'] === 'client') {

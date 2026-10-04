@@ -45,6 +45,10 @@ export class DomainApiService {
     return this.http.get<ApiEnvelope<{ items: InventoryRecord[] }>>('/api/v1/inventory');
   }
 
+  recordInventoryTransaction(payload: { inventory_item_id: string; type: 'purchase' | 'patient_usage' | 'return' | 'wastage' | 'correction'; quantity: number; reason: string; client_request_id: string; patient_id?: string; quantity_delta?: number }): Observable<ApiEnvelope<{ transaction_id: string; invoice_id: string | null; quantity_after: number; idempotent: boolean }>> {
+    return this.http.post<ApiEnvelope<{ transaction_id: string; invoice_id: string | null; quantity_after: number; idempotent: boolean }>>('/api/v1/inventory/transactions', payload);
+  }
+
   invoices(): Observable<ApiEnvelope<{ invoices: InvoiceRecord[] }>> {
     return this.http.get<ApiEnvelope<{ invoices: InvoiceRecord[] }>>('/api/v1/invoices');
   }
