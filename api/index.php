@@ -185,6 +185,99 @@ try {
         respond(200, ['data' => ['invoices' => $rows]]);
     }
 
+    if ($method === 'POST' && $resource === 'invoices') {
+        $current = requireUser($pdo);
+        $data = input();
+        $clientId = trim((string) ($data['client_id'] ?? ''));
+        $petId = trim((string) ($data['pet_id'] ?? '')) ?: null;
+        $lines = $data['lines'] ?? [];
+        if ($clientId === '' || !is_array($lines) || count($lines) === 0) respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'A client and at least one invoice line are required.']]);
+        $pdo->beginTransaction();
+        $subtotal = 0.0;
+        $taxTotal = 0.0;
+        $normalized = [];
+        foreach ($lines as $line) {
+            $description = trim((string) ($line['description'] ?? ''));
+            $quantity = (float) ($line['quantity'] ?? 0);
+            $unitPrice = (float) ($line['unit_price'] ?? 0);
+            $taxRate = (float) ($line['tax_rate'] ?? 0);
+            if ($description === '' || $quantity <= 0 || $unitPrice < 0 || $taxRate < 0 || $taxRate > 100) { $pdo->rollBack(); respond(422, ['error' => ['code' => 'INVALID_LINE', 'message' => 'Invoice lines must have valid descriptions, quantities, prices, and tax rates.']]); }
+            $lineSubtotal = round($quantity * $unitPrice, 2);
+            $lineTax = round($lineSubtotal * ($taxRate / 100), 2);
+            $subtotal += $lineSubtotal;
+            $taxTotal += $lineTax;
+            $normalized[] = [$description, $quantity, $unitPrice, $lineTax, $lineSubtotal + $lineTax, $line['service_id'] ?? null];
+        }
+        $discount = max(0.0, (float) ($data['discount_total'] ?? 0));
+        if ($discount > $subtotal + $taxTotal) { $pdo->rollBack(); respond(422, ['error' => ['code' => 'INVALID_DISCOUNT', 'message' => 'Discount cannot exceed the invoice amount.']]); }
+        $total = round($subtotal + $taxTotal - $discount, 2);
+        $invoiceId = uuid();
+        $number = 'INV-' . gmdate('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
+        $pdo->prepare('INSERT INTO invoices (id, invoice_number, client_id, pet_id, status, subtotal, tax_total, discount_total, total, balance_due, created_by) VALUES (:id, :number, :client, :pet, "issued", :subtotal, :tax, :discount, :total, :total, :user)')->execute(['id' => $invoiceId, 'number' => $number, 'client' => $clientId, 'pet' => $petId, 'subtotal' => $subtotal, 'tax' => $taxTotal, 'discount' => $discount, 'total' => $total, 'user' => $current['id']]);
+        foreach ($normalized as [$description, $quantity, $unitPrice, $lineTax, $lineTotal, $serviceId]) {
+            $pdo->prepare('INSERT INTO invoice_lines (id, invoice_id, line_type, description, service_id, quantity, unit_price, tax_amount, line_total) VALUES (:id, :invoice, :type, :description, :service, :quantity, :price, :tax, :total)')->execute(['id' => uuid(), 'invoice' => $invoiceId, 'type' => $serviceId ? 'service' : 'adjustment', 'description' => $description, 'service' => $serviceId ?: null, 'quantity' => $quantity, 'price' => $unitPrice, 'tax' => $lineTax, 'total' => $lineTotal]);
+        }
+        $pdo->commit();
+        respond(201, ['data' => ['invoice_id' => $invoiceId, 'invoice_number' => $number, 'subtotal' => $subtotal, 'tax_total' => $taxTotal, 'discount_total' => $discount, 'total' => $total, 'balance_due' => $total]]);
+    }
+
+    if ($method === 'POST' && $resource === 'payments') {
+        $current = requireUser($pdo);
+        $data = input();
+        $invoiceId = trim((string) ($data['invoice_id'] ?? ''));
+        $amount = (float) ($data['amount'] ?? 0);
+        $methodName = (string) ($data['method'] ?? '');
+        if ($invoiceId === '' || $amount <= 0 || !in_array($methodName, ['cash', 'card', 'bank_transfer', 'gcash', 'other'], true)) respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'Invoice, positive amount, and supported payment method are required.']]);
+        $pdo->beginTransaction();
+        $invoiceStmt = $pdo->prepare('SELECT * FROM invoices WHERE id = :id FOR UPDATE');
+        $invoiceStmt->execute(['id' => $invoiceId]);
+        $invoice = $invoiceStmt->fetch();
+        if (!$invoice || in_array($invoice['status'], ['void', 'refunded'], true)) { $pdo->rollBack(); respond(404, ['error' => ['code' => 'INVOICE_UNAVAILABLE', 'message' => 'The invoice is unavailable for payment.']]); }
+        if ($amount > (float) $invoice['balance_due']) { $pdo->rollBack(); respond(422, ['error' => ['code' => 'OVERPAYMENT', 'message' => 'Payment cannot exceed the outstanding balance.']]); }
+        $paymentId = uuid();
+        $pdo->prepare('INSERT INTO payments (id, invoice_id, amount, method, status, reference, paid_at, received_by) VALUES (:id, :invoice, :amount, :method, "completed", :reference, UTC_TIMESTAMP(6), :user)')->execute(['id' => $paymentId, 'invoice' => $invoiceId, 'amount' => $amount, 'method' => $methodName, 'reference' => trim((string) ($data['reference'] ?? '')) ?: null, 'user' => $current['id']]);
+        $paid = round((float) $invoice['amount_paid'] + $amount, 2);
+        $balance = round((float) $invoice['total'] - $paid, 2);
+        $status = $balance <= 0 ? 'paid' : 'partially_paid';
+        $pdo->prepare('UPDATE invoices SET amount_paid = :paid, balance_due = :balance, status = :status WHERE id = :id')->execute(['paid' => $paid, 'balance' => max(0, $balance), 'status' => $status, 'id' => $invoiceId]);
+        $pdo->commit();
+        respond(201, ['data' => ['payment_id' => $paymentId, 'invoice_id' => $invoiceId, 'amount_paid' => $paid, 'balance_due' => max(0, $balance), 'status' => $status]]);
+    }
+
+    if ($method === 'POST' && $resource === 'void' && count($parts) >= 2) {
+        $current = requireUser($pdo);
+        $invoiceId = $parts[count($parts) - 2];
+        $stmt = $pdo->prepare('UPDATE invoices SET status = "void", balance_due = 0 WHERE id = :id AND status NOT IN ("paid", "refunded")');
+        $stmt->execute(['id' => $invoiceId]);
+        if ($stmt->rowCount() === 0) respond(409, ['error' => ['code' => 'CANNOT_VOID', 'message' => 'Only unpaid invoices can be voided.']]);
+        respond(200, ['data' => ['invoice_id' => $invoiceId, 'status' => 'void', 'updated_by' => $current['id']]]);
+    }
+
+    if ($method === 'POST' && $resource === 'refund' && count($parts) >= 2) {
+        $current = requireUser($pdo);
+        $paymentId = $parts[count($parts) - 2];
+        $data = input();
+        $amount = (float) ($data['amount'] ?? 0);
+        $reason = trim((string) ($data['reason'] ?? ''));
+        $requestId = trim((string) ($data['client_request_id'] ?? ''));
+        if ($amount <= 0 || $reason === '' || $requestId === '') respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'Positive amount, reason, and client_request_id are required.']]);
+        $duplicate = $pdo->prepare('SELECT id FROM refunds WHERE client_request_id = :request_id');
+        $duplicate->execute(['request_id' => $requestId]);
+        $duplicateId = $duplicate->fetchColumn();
+        if ($duplicateId) respond(200, ['data' => ['refund_id' => $duplicateId, 'idempotent' => true]]);
+        $pdo->beginTransaction();
+        $paymentStmt = $pdo->prepare('SELECT p.*, i.id AS invoice_id FROM payments p JOIN invoices i ON i.id = p.invoice_id WHERE p.id = :id AND p.status = "completed" FOR UPDATE');
+        $paymentStmt->execute(['id' => $paymentId]);
+        $payment = $paymentStmt->fetch();
+        if (!$payment || $amount > (float) $payment['amount']) { $pdo->rollBack(); respond(422, ['error' => ['code' => 'INVALID_REFUND', 'message' => 'Refund exceeds the completed payment.']]); }
+        $refundId = uuid();
+        $pdo->prepare('INSERT INTO refunds (id, payment_id, amount, reason, client_request_id, recorded_by) VALUES (:id, :payment, :amount, :reason, :request_id, :user)')->execute(['id' => $refundId, 'payment' => $paymentId, 'amount' => $amount, 'reason' => $reason, 'request_id' => $requestId, 'user' => $current['id']]);
+        $pdo->prepare('UPDATE payments SET status = "refunded" WHERE id = :id')->execute(['id' => $paymentId]);
+        $pdo->prepare('UPDATE invoices SET amount_paid = GREATEST(0, amount_paid - :amount), balance_due = LEAST(total, balance_due + :amount), status = "partially_paid" WHERE id = :id')->execute(['amount' => $amount, 'id' => $payment['invoice_id']]);
+        $pdo->commit();
+        respond(201, ['data' => ['refund_id' => $refundId, 'payment_id' => $paymentId, 'amount' => $amount, 'idempotent' => false]]);
+    }
+
     if ($method === 'GET' && $resource === 'emr') {
         requireUser($pdo);
         $count = (int) $pdo->query('SELECT COUNT(*) FROM pets WHERE status = "active"')->fetchColumn();

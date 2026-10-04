@@ -53,6 +53,22 @@ export class DomainApiService {
     return this.http.get<ApiEnvelope<{ invoices: InvoiceRecord[] }>>('/api/v1/invoices');
   }
 
+  createInvoice(payload: { client_id: string; pet_id?: string; discount_total?: number; lines: Array<{ description: string; quantity: number; unit_price: number; tax_rate?: number; service_id?: string }> }): Observable<ApiEnvelope<{ invoice_id: string; invoice_number: string; total: number; balance_due: number }>> {
+    return this.http.post<ApiEnvelope<{ invoice_id: string; invoice_number: string; total: number; balance_due: number }>>('/api/v1/invoices', payload);
+  }
+
+  recordPayment(payload: { invoice_id: string; amount: number; method: 'cash' | 'card' | 'bank_transfer' | 'gcash' | 'other'; reference?: string }): Observable<ApiEnvelope<{ payment_id: string; invoice_id: string; amount_paid: number; balance_due: number; status: string }>> {
+    return this.http.post<ApiEnvelope<{ payment_id: string; invoice_id: string; amount_paid: number; balance_due: number; status: string }>>('/api/v1/payments', payload);
+  }
+
+  voidInvoice(invoiceId: string): Observable<ApiEnvelope<{ invoice_id: string; status: string }>> {
+    return this.http.post<ApiEnvelope<{ invoice_id: string; status: string }>>(`/api/v1/invoices/${invoiceId}/void`, {});
+  }
+
+  refundPayment(paymentId: string, payload: { amount: number; reason: string; client_request_id: string }): Observable<ApiEnvelope<{ refund_id: string; payment_id: string; amount: number }>> {
+    return this.http.post<ApiEnvelope<{ refund_id: string; payment_id: string; amount: number }>>(`/api/v1/payments/${paymentId}/refund`, payload);
+  }
+
   patients(): Observable<ApiEnvelope<{ patient_count: number; patients: PatientRecord[] }>> {
     return this.http.get<ApiEnvelope<{ patient_count: number; patients: PatientRecord[] }>>('/api/v1/emr');
   }
