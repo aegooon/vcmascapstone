@@ -28,6 +28,7 @@ export interface InvoiceRecord {
   balance_due: string;
   created_at: string;
 }
+export interface PaymentRecord { id: string; invoice_id: string; invoice_number: string; amount: string; method: string; status: string; reference: string | null; paid_at: string; }
 
 export interface PatientRecord {
   id: string;
@@ -92,6 +93,10 @@ export class DomainApiService {
 
   recordPayment(payload: { invoice_id: string; amount: number; method: 'cash' | 'card' | 'bank_transfer' | 'gcash' | 'other'; reference?: string }): Observable<ApiEnvelope<{ payment_id: string; invoice_id: string; amount_paid: number; balance_due: number; status: string }>> {
     return this.http.post<ApiEnvelope<{ payment_id: string; invoice_id: string; amount_paid: number; balance_due: number; status: string }>>('/api/v1/payments', payload);
+  }
+
+  payments(): Observable<ApiEnvelope<{ payments: PaymentRecord[] }>> {
+    return this.http.get<ApiEnvelope<{ payments: PaymentRecord[] }>>('/api/v1/payments');
   }
 
   voidInvoice(invoiceId: string): Observable<ApiEnvelope<{ invoice_id: string; status: string }>> {

@@ -352,6 +352,12 @@ try {
         respond(201, ['data' => ['payment_id' => $paymentId, 'invoice_id' => $invoiceId, 'amount_paid' => $paid, 'balance_due' => max(0, $balance), 'status' => $status]]);
     }
 
+    if ($method === 'GET' && $resource === 'payments') {
+        requireUser($pdo);
+        $rows = $pdo->query('SELECT p.id, p.invoice_id, i.invoice_number, p.amount, p.method, p.status, p.reference, p.paid_at FROM payments p JOIN invoices i ON i.id = p.invoice_id ORDER BY p.paid_at DESC LIMIT 100')->fetchAll();
+        respond(200, ['data' => ['payments' => $rows]]);
+    }
+
     if ($method === 'POST' && $resource === 'void' && count($parts) >= 2) {
         $current = requireUser($pdo);
         $invoiceId = $parts[count($parts) - 2];
