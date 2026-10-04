@@ -1,1 +1,14 @@
-<p>billing works!</p>
+<main class="min-h-screen bg-slate-50 p-6">
+  <h1 class="text-2xl font-bold text-slate-900">Billing</h1>
+  <p class="mt-1 text-sm text-slate-600">Invoices and balances from the clinic database.</p>
+  @if (loading) { <p class="mt-6 text-slate-600" aria-live="polite">Loading invoices…</p> }
+  @if (error) { <p class="mt-6 text-red-700" role="alert">{{ error }}</p> }
+  @if (!loading && !error) {
+    <div class="mt-6 overflow-x-auto rounded-xl bg-white shadow-sm">
+      <table class="min-w-full text-left text-sm"><thead class="border-b text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Invoice</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Total</th><th class="px-4 py-3">Balance</th></tr></thead><tbody>
+        @for (invoice of invoices; track invoice.id) { <tr class="border-b last:border-0"><td class="px-4 py-3 font-medium">{{ invoice.invoice_number }}</td><td class="px-4 py-3">{{ invoice.status }}</td><td class="px-4 py-3">₱{{ invoice.total }}</td><td class="px-4 py-3">₱{{ invoice.balance_due }}</td></tr> }
+      </tbody></table>
+      @if (invoices.length === 0) { <p class="p-6 text-slate-600">No invoices found.</p> }
+    </div>
+  }
+</main>

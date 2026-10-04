@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { DomainApiService } from '../../core/api/domain-api.service';
 
 export interface InventoryItem {
   id: number;
@@ -49,9 +50,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   categories: string[] = ['All', 'Drugs', 'Medical Items', 'Laboratory Equipment', 'Pet Food'];
 
+  private readonly api = inject(DomainApiService);
+
   constructor(private router: Router) {}
 
   ngOnInit() {
+    this.api.inventory().subscribe({ next: ({ data }) => {
+      this.items = data.items.map((item, index) => ({ id: index + 1, name: item.name, category: this.displayCategory(item.category), stock: Number(item.quantity_on_hand), unit: item.unit, price: Number(item.client_price), lastUpdated: item.updated_at.slice(0, 10) }));
+    } });
     this.timeInterval = setInterval(() => {
       this.currentTime = new Date();
     }, 60000);
@@ -146,6 +152,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
       price: 0,
       lastUpdated: new Date().toISOString().split('T')[0]
     };
+  }
+
+  private displayCategory(category: string): InventoryItem['category'] {
+    const labels: Record<string, InventoryItem['category']> = { drugs: 'Drugs', medical_items: 'Medical Items', laboratory_equipment: 'Laboratory Equipment', pet_food: 'Pet Food', pet_supplies: 'Pet Food', other: 'Medical Items' };
+    return labels[category] ?? 'Medical Items';
   }
 
   logout(): void {

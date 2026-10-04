@@ -1,1 +1,8 @@
-<p>emr works!</p>
+<main class="min-h-screen bg-slate-50 p-6">
+  <h1 class="text-2xl font-bold text-slate-900">Electronic Medical Records</h1>
+  <p class="mt-1 text-sm text-slate-600">Active patient records available to the veterinary team.</p>
+  <div class="mt-6 rounded-xl bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Active patients</p><p class="text-3xl font-bold text-blue-900">{{ patientCount }}</p></div>
+  @if (loading) { <p class="mt-6 text-slate-600" aria-live="polite">Loading patient records…</p> }
+  @if (error) { <p class="mt-6 text-red-700" role="alert">{{ error }}</p> }
+  @if (!loading && !error) { <div class="mt-6 overflow-x-auto rounded-xl bg-white shadow-sm"><table class="min-w-full text-left text-sm"><thead class="border-b text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Patient</th><th class="px-4 py-3">Species</th><th class="px-4 py-3">Owner</th><th class="px-4 py-3">Last visit</th></tr></thead><tbody>@for (patient of patients; track patient.id) { <tr class="border-b last:border-0"><td class="px-4 py-3 font-medium">{{ patient.name }}</td><td class="px-4 py-3">{{ patient.species }}</td><td class="px-4 py-3">{{ patient.client_name }}</td><td class="px-4 py-3">{{ patient.last_visit || 'No visits recorded' }}</td></tr> }</tbody></table></div> }
+</main>

@@ -118,6 +118,31 @@ try {
         respond(200, ['data' => ['clinic' => $settings ?: null]]);
     }
 
+    if ($method === 'GET' && $resource === 'inventory') {
+        requireUser($pdo);
+        $rows = $pdo->query('SELECT id, sku, name, category, unit, quantity_on_hand, reorder_level, unit_cost, client_price, chargeable, active, updated_at FROM inventory_items WHERE active = 1 ORDER BY name')->fetchAll();
+        respond(200, ['data' => ['items' => $rows]]);
+    }
+
+    if ($method === 'GET' && $resource === 'invoices') {
+        $current = requireUser($pdo);
+        if ($current['role'] === 'client') {
+            $stmt = $pdo->prepare('SELECT i.id, i.invoice_number, i.status, i.subtotal, i.tax_total, i.discount_total, i.total, i.amount_paid, i.balance_due, i.created_at FROM invoices i JOIN clients c ON c.id = i.client_id WHERE c.user_id = :user ORDER BY i.created_at DESC');
+            $stmt->execute(['user' => $current['id']]);
+            $rows = $stmt->fetchAll();
+        } else {
+            $rows = $pdo->query('SELECT id, invoice_number, status, subtotal, tax_total, discount_total, total, amount_paid, balance_due, created_at FROM invoices ORDER BY created_at DESC')->fetchAll();
+        }
+        respond(200, ['data' => ['invoices' => $rows]]);
+    }
+
+    if ($method === 'GET' && $resource === 'emr') {
+        requireUser($pdo);
+        $count = (int) $pdo->query('SELECT COUNT(*) FROM pets WHERE status = "active"')->fetchColumn();
+        $rows = $pdo->query('SELECT p.id, p.name, p.species, p.breed, c.full_name AS client_name, MAX(v.visited_at) AS last_visit FROM pets p JOIN clients c ON c.id = p.client_id LEFT JOIN emr_visits v ON v.pet_id = p.id WHERE p.status = "active" GROUP BY p.id, p.name, p.species, p.breed, c.full_name ORDER BY p.name')->fetchAll();
+        respond(200, ['data' => ['patient_count' => $count, 'patients' => $rows]]);
+    }
+
     respond(404, ['error' => ['code' => 'NOT_FOUND', 'message' => 'The requested endpoint does not exist.']]);
 } catch (Throwable $exception) {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) $pdo->rollBack();
