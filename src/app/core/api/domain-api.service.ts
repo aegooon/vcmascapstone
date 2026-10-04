@@ -39,6 +39,7 @@ export interface PatientRecord {
   last_visit: string | null;
 }
 export interface EmrVisitRecord { id: string; visited_at: string; clinical_notes: string; diagnosis: string | null; treatment_plan: string | null; follow_up_instructions: string | null; author_name: string; }
+export interface EmrStructuredRecords { vaccinations: Array<Record<string, string | null>>; laboratories: Array<Record<string, string | null>>; medications: Array<Record<string, string | null>>; attachments: Array<Record<string, string | null>>; audit: Array<Record<string, string | null>>; }
 
 export interface AppointmentRecord {
   id: string;
@@ -117,6 +118,14 @@ export class DomainApiService {
 
   emrVisits(petId: string): Observable<ApiEnvelope<{ visits: EmrVisitRecord[] }>> {
     return this.http.get<ApiEnvelope<{ visits: EmrVisitRecord[] }>>(`/api/v1/pets/${petId}/visits`);
+  }
+
+  emrRecords(petId: string): Observable<ApiEnvelope<EmrStructuredRecords>> {
+    return this.http.get<ApiEnvelope<EmrStructuredRecords>>(`/api/v1/pets/${petId}/records`);
+  }
+
+  createEmrRecord(petId: string, payload: Record<string, string>): Observable<ApiEnvelope<{ record_id: string; type: string }>> {
+    return this.http.post<ApiEnvelope<{ record_id: string; type: string }>>(`/api/v1/pets/${petId}/records`, payload);
   }
 
   appointments(): Observable<ApiEnvelope<{ appointments: AppointmentRecord[] }>> {

@@ -421,6 +421,36 @@ try {
         respond(200, ['data' => ['visits' => $stmt->fetchAll()]]);
     }
 
+    if (in_array($method, ['GET', 'POST'], true) && $resource === 'records' && ($parts[count($parts) - 2] ?? '') === 'pets') {
+        $current = requireUser($pdo);
+        $petId = $parts[count($parts) - 2];
+        if ($method === 'GET') {
+            $vaccinations = $pdo->prepare('SELECT id, vaccine_name, administered_at, next_due_at, batch_number, notes FROM emr_vaccinations WHERE pet_id = :pet ORDER BY administered_at DESC');
+            $vaccinations->execute(['pet' => $petId]);
+            $labs = $pdo->prepare('SELECT id, test_name, status, result_summary, ordered_at, reviewed_at FROM emr_laboratory_results WHERE pet_id = :pet ORDER BY ordered_at DESC');
+            $labs->execute(['pet' => $petId]);
+            $medications = $pdo->prepare('SELECT id, medication_name, dosage, route, frequency, starts_on, ends_on, instructions FROM emr_medications WHERE pet_id = :pet ORDER BY starts_on DESC');
+            $medications->execute(['pet' => $petId]);
+            $attachments = $pdo->prepare('SELECT id, original_name, media_type, size_bytes, created_at FROM emr_attachments WHERE pet_id = :pet ORDER BY created_at DESC');
+            $attachments->execute(['pet' => $petId]);
+            $audit = $pdo->prepare('SELECT action, entity_type, metadata, created_at FROM audit_events WHERE entity_id = :pet ORDER BY created_at DESC LIMIT 50');
+            $audit->execute(['pet' => $petId]);
+            respond(200, ['data' => ['vaccinations' => $vaccinations->fetchAll(), 'laboratories' => $labs->fetchAll(), 'medications' => $medications->fetchAll(), 'attachments' => $attachments->fetchAll(), 'audit' => $audit->fetchAll()]]);
+        }
+        $data = input();
+        $type = (string) ($data['type'] ?? '');
+        $recordId = uuid();
+        if ($type === 'vaccination' && trim((string) ($data['vaccine_name'] ?? '')) !== '') {
+            $pdo->prepare('INSERT INTO emr_vaccinations (id, pet_id, vaccine_name, administered_at, next_due_at, batch_number, administered_by, notes) VALUES (:id, :pet, :name, COALESCE(:date, UTC_TIMESTAMP(6)), :next_due, :batch, :user, :notes)')->execute(['id' => $recordId, 'pet' => $petId, 'name' => trim((string) $data['vaccine_name']), 'date' => trim((string) ($data['administered_at'] ?? '')) ?: null, 'next_due' => trim((string) ($data['next_due_at'] ?? '')) ?: null, 'batch' => trim((string) ($data['batch_number'] ?? '')) ?: null, 'user' => $current['id'], 'notes' => trim((string) ($data['notes'] ?? '')) ?: null]);
+        } elseif ($type === 'laboratory' && trim((string) ($data['test_name'] ?? '')) !== '') {
+            $pdo->prepare('INSERT INTO emr_laboratory_results (id, pet_id, test_name, status, result_summary, ordered_at) VALUES (:id, :pet, :name, :status, :summary, COALESCE(:date, UTC_TIMESTAMP(6)))')->execute(['id' => $recordId, 'pet' => $petId, 'name' => trim((string) $data['test_name']), 'status' => in_array(($data['status'] ?? ''), ['ordered', 'collected', 'available', 'reviewed', 'cancelled'], true) ? $data['status'] : 'ordered', 'summary' => trim((string) ($data['result_summary'] ?? '')) ?: null, 'date' => trim((string) ($data['ordered_at'] ?? '')) ?: null]);
+        } elseif ($type === 'medication' && trim((string) ($data['medication_name'] ?? '')) !== '') {
+            $pdo->prepare('INSERT INTO emr_medications (id, pet_id, medication_name, dosage, route, frequency, starts_on, ends_on, instructions, prescribed_by) VALUES (:id, :pet, :name, :dosage, :route, :frequency, :starts, :ends, :instructions, :user)')->execute(['id' => $recordId, 'pet' => $petId, 'name' => trim((string) $data['medication_name']), 'dosage' => trim((string) ($data['dosage'] ?? '')) ?: null, 'route' => trim((string) ($data['route'] ?? '')) ?: null, 'frequency' => trim((string) ($data['frequency'] ?? '')) ?: null, 'starts' => trim((string) ($data['starts_on'] ?? '')) ?: null, 'ends' => trim((string) ($data['ends_on'] ?? '')) ?: null, 'instructions' => trim((string) ($data['instructions'] ?? '')) ?: null, 'user' => $current['id']]);
+        } else respond(422, ['error' => ['code' => 'INVALID_RECORD', 'message' => 'A valid vaccination, laboratory, or medication record is required.']]);
+        $pdo->prepare('INSERT INTO audit_events (id, actor_user_id, action, entity_type, entity_id, metadata) VALUES (:id, :user, :action, :type, :entity, :metadata)')->execute(['id' => uuid(), 'user' => $current['id'], 'action' => 'created', 'type' => 'emr_' . $type, 'entity' => $petId, 'metadata' => json_encode(['record_id' => $recordId], JSON_THROW_ON_ERROR)]);
+        respond(201, ['data' => ['record_id' => $recordId, 'type' => $type]]);
+    }
+
     respond(404, ['error' => ['code' => 'NOT_FOUND', 'message' => 'The requested endpoint does not exist.']]);
 } catch (Throwable $exception) {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) $pdo->rollBack();

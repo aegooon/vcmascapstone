@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DomainApiService, EmrVisitRecord, PatientRecord } from '../../core/api/domain-api.service';
+import { DomainApiService, EmrStructuredRecords, EmrVisitRecord, PatientRecord } from '../../core/api/domain-api.service';
 
 @Component({
   imports: [FormsModule],
@@ -22,6 +22,7 @@ export class Emr {
   followUp = '';
   saveMessage = '';
   visits: EmrVisitRecord[] = [];
+  records: EmrStructuredRecords | null = null;
 
   get filteredPatients(): PatientRecord[] {
     const query = this.searchTerm.trim().toLowerCase();
@@ -33,6 +34,7 @@ export class Emr {
     this.selectedPatient = patient;
     this.saveMessage = '';
     this.api.emrVisits(patient.id).subscribe({ next: ({ data }) => { this.visits = data.visits; } });
+    this.api.emrRecords(patient.id).subscribe({ next: ({ data }) => { this.records = data; } });
   }
 
   saveVisit(): void {
