@@ -1,0 +1,355 @@
+<div class="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0">
+    <div>
+      <!-- Logo Area -->
+      <div class="h-16 flex items-center px-6 border-b border-slate-100">
+        <div class="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center text-white mr-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+        </div>
+        <span class="font-bold text-lg tracking-tight text-slate-900">VCMAS</span>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="p-4 space-y-1.5">
+        <a routerLink="/dashboard" class="flex items-center px-4 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+          Dashboard
+        </a>
+        <a routerLink="/scheduling" class="flex items-center px-4 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          Appointments
+        </a>
+        <a routerLink="/inventory" class="flex items-center px-4 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+          Inventory
+        </a>
+        <a routerLink="/billing" class="flex items-center px-4 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Billing
+        </a>
+        <a routerLink="/emr" class="flex items-center px-4 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          EMR
+        </a>
+        <a routerLink="/admin" class="flex items-center px-4 py-2.5 bg-blue-700 text-white rounded-xl text-sm font-medium shadow-sm transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          Admin
+        </a>
+      </nav>
+    </div>
+
+    <!-- Bottom Profile Info -->
+    <div class="p-4 border-t border-slate-100 m-4 bg-slate-50 rounded-xl flex items-center">
+      <div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+      </div>
+      <div class="ml-3 overflow-hidden">
+        <p class="text-sm font-semibold text-slate-900 truncate">Dr. Judit Maesa</p>
+        <p class="text-xs text-slate-500 truncate">Veterinarian</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="flex-1 flex flex-col overflow-hidden relative">
+
+    <!-- Top Header Bar -->
+    <header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 bg-white shrink-0">
+      <div class="text-sm font-medium text-slate-500">
+        {{ currentTime | date:'EEEE, MMMM d, y, h:mm a' }}
+      </div>
+      <div class="flex items-center space-x-6">
+        <button class="text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+        </button>
+        <button (click)="logout()" class="text-sm font-semibold text-slate-600 hover:text-red-600 transition-colors cursor-pointer">
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Scrollable Admin Content -->
+    <div class="flex-1 overflow-y-auto p-8 pb-20">
+
+      <!-- Header Row & Quick Actions -->
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between mb-10 gap-6">
+        <div>
+          <p class="text-xs font-bold text-slate-400 tracking-wider uppercase mb-1">Admin Panel</p>
+          <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Admin Dashboard</h1>
+          <p class="text-slate-500 mt-2 text-sm max-w-md">Manage staff roles, service catalogs, inventory levels, and system configuration.</p>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <button (click)="onExportReport()" class="flex items-center px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-medium text-sm cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
+            Export Report
+          </button>
+          <button (click)="onAddNewUser()" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-medium text-sm rounded-xl transition-colors shadow-sm flex items-center gap-2 cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+            <span>Add New User</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Stat Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+        <!-- Total Patients -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div class="flex justify-between items-start mb-4">
+            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            </div>
+            <span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full">{{ stats.totalPatients.trend }}</span>
+          </div>
+          <p class="text-sm font-medium text-slate-500">Total Patients This Month</p>
+          <p class="text-3xl font-extrabold text-slate-900 mt-1">{{ stats.totalPatients.value }}</p>
+        </div>
+
+        <!-- Services Rendered -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div class="flex justify-between items-start mb-4">
+            <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full">{{ stats.servicesRendered.trend }}</span>
+          </div>
+          <p class="text-sm font-medium text-slate-500">Services Rendered</p>
+          <p class="text-3xl font-extrabold text-slate-900 mt-1">{{ stats.servicesRendered.value }}</p>
+        </div>
+
+        <!-- Inventory Status (highlight card) -->
+        <div class="bg-blue-800 p-6 rounded-2xl shadow-md relative overflow-hidden text-white">
+          <div class="absolute -right-6 -top-6 w-24 h-24 bg-white opacity-5 rounded-full blur-2xl"></div>
+          <div class="flex justify-between items-start mb-4">
+            <div class="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 7v6a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0020 13z" /></svg>
+            </div>
+            <span class="px-2.5 py-1 bg-white/15 text-white text-xs font-bold rounded-full">{{ stats.inventoryStatus.badge }}</span>
+          </div>
+          <p class="text-sm font-medium text-blue-100">Inventory Status</p>
+          <p class="text-3xl font-extrabold mt-1">{{ stats.inventoryStatus.value }}</p>
+        </div>
+
+      </div>
+
+      <!-- Main Grid: Staff/Settings, Pricing/Inventory -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+        <!-- Staff & Veterinarians -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Staff &amp; Veterinarians</h2>
+              <p class="text-sm text-slate-500 mt-0.5">Manage roles, access levels, and schedules.</p>
+            </div>
+            <div class="flex gap-2">
+              <button class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 cursor-pointer" aria-label="Filter">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18l-7 8v6l-4 2v-8L3 4z" /></svg>
+              </button>
+              <button class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 cursor-pointer" aria-label="Search">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="7" /><path stroke-linecap="round" d="M21 21l-4.3-4.3" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-120 text-left text-sm">
+              <thead>
+                <tr class="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                  <th class="pb-3 font-semibold">Name</th>
+                  <th class="pb-3 font-semibold">Role</th>
+                  <th class="pb-3 font-semibold">Department</th>
+                  <th class="pb-3 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let member of staff" class="group hover:bg-slate-50 transition-colors">
+                  <td class="py-3">
+                    <div class="flex items-center">
+                      <div class="w-10 h-10 rounded-full bg-slate-200 mr-3 flex items-center justify-center overflow-hidden shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      </div>
+                      <div>
+                        <p class="text-sm font-bold text-slate-900">{{ member.name }}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">{{ member.email }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 text-slate-600">{{ member.role }}</td>
+                  <td class="py-3 text-slate-600">{{ member.department }}</td>
+                  <td class="py-3">
+                    <span
+                      class="inline-flex px-2.5 py-1 rounded-md text-xs font-bold"
+                      [ngClass]="member.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'"
+                    >
+                      {{ member.status }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <a href="#" class="inline-block mt-6 text-sm font-semibold text-blue-600 hover:underline">View All Staff</a>
+        </div>
+
+        <!-- Clinic Settings -->
+        <div class="bg-blue-800 rounded-2xl shadow-md p-6 text-white relative overflow-hidden">
+          <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl"></div>
+          <div class="flex items-center gap-2 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <h2 class="text-base font-bold">Clinic Settings</h2>
+          </div>
+
+          <nav class="space-y-1">
+            <button
+              *ngFor="let link of clinicSettingsLinks"
+              type="button"
+              class="w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm text-blue-50 hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <span>{{ link.label }}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Service Pricing + Inventory Alerts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+        <!-- Service Pricing -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-base font-bold text-slate-900">Service Pricing</h2>
+            <button class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 cursor-pointer" aria-label="Add service">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            <div *ngFor="let service of servicePricing" class="flex items-center justify-between bg-slate-100/70 rounded-xl p-3 border border-slate-50">
+              <div>
+                <p class="text-sm font-bold text-slate-900">{{ service.name }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">{{ service.category }}</p>
+              </div>
+              <span class="text-sm font-extrabold text-slate-900">{{ service.price }}</span>
+            </div>
+          </div>
+
+          <button class="w-full mt-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-semibold rounded-xl transition-colors cursor-pointer">
+            Manage All Services
+          </button>
+        </div>
+
+        <!-- Inventory Alerts -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <h2 class="text-base font-bold text-slate-900 mb-6">Inventory Alerts</h2>
+
+          <div class="space-y-4">
+            <div *ngFor="let item of inventoryAlerts">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex items-start gap-2.5">
+                  <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                    [ngClass]="item.severity === 'critical' ? 'bg-red-50 text-red-600' : 'bg-amber-100 text-amber-600'"
+                  >
+                    <svg *ngIf="item.severity === 'critical'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m0 3.75h.007M12 21a9 9 0 100-18 9 9 0 000 18z" /></svg>
+                    <svg *ngIf="item.severity === 'low'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.29 3.86L1.82 18a1.5 1.5 0 001.3 2.25h17.76a1.5 1.5 0 001.3-2.25L13.71 3.86a1.5 1.5 0 00-2.42 0z" /></svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold text-slate-900">{{ item.name }}</p>
+                    <p class="text-xs text-slate-500 mt-0.5">{{ item.detail }}</p>
+                  </div>
+                </div>
+                <span
+                  class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide"
+                  [ngClass]="item.severity === 'critical' ? 'bg-red-50 text-red-600' : 'bg-amber-100 text-amber-600'"
+                >
+                  {{ item.severity }}
+                </span>
+              </div>
+
+              <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full"
+                  [ngClass]="item.severity === 'critical' ? 'bg-red-500' : 'bg-amber-500'"
+                  [style.width.%]="stockPercent(item)"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <button
+            (click)="onCreatePurchaseOrder(inventoryAlerts[0])"
+            class="w-full mt-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors cursor-pointer"
+          >
+            Create Purchase Order
+          </button>
+        </div>
+      </div>
+
+      <!-- Patient Volume + System Audit Log -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Patient Volume -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-base font-bold text-slate-900">Patient Volume</h2>
+            <button class="flex items-center gap-1 px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-200 cursor-pointer">
+              Last 30 Days
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+          </div>
+
+          <div class="flex items-end justify-between gap-3 h-44 px-2">
+            <div *ngFor="let bar of patientVolume" class="flex-1 flex flex-col items-center gap-2">
+              <div
+                class="w-full max-w-10 rounded-t-lg bg-blue-700"
+                [style.height.%]="bar.value"
+                [style.opacity]="0.5 + (bar.value / 100) * 0.5"
+              ></div>
+              <span class="text-[11px] font-semibold text-slate-400">{{ bar.day }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Audit Log -->
+        <div class="bg-slate-100 rounded-2xl border border-slate-200 p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-base font-bold text-slate-900">System Audit Log</h2>
+          </div>
+
+          <div class="relative pl-3 space-y-6 before:absolute before:inset-y-0 before:left-5 before:w-0.5 before:bg-slate-200">
+            <div *ngFor="let entry of auditLog" class="relative pl-8">
+              <div class="absolute -left-2.75 top-1 w-6 h-6 rounded-full {{ entry.bgColor }} {{ entry.iconColor }} border-4 border-slate-100 flex items-center justify-center z-10">
+                <div class="w-1.5 h-1.5 rounded-full bg-current"></div>
+              </div>
+              <p class="text-sm text-slate-800 font-medium leading-snug">
+                {{ entry.text }}<span *ngIf="entry.highlight" class="font-bold text-blue-700">{{ entry.highlight }}</span>
+              </p>
+              <p class="text-xs text-slate-500 mt-1">{{ entry.time }}</p>
+            </div>
+          </div>
+
+          <button class="w-full mt-8 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+            View Full Log
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="absolute bottom-0 w-full bg-slate-50 border-t border-slate-200 px-8 py-4 flex justify-between items-center text-xs text-slate-500">
+      <div>
+        <p class="font-bold text-slate-700">Veterinary Clinic Management and Appointment System</p>
+        <p>196 Rt. Aglipay St., Brgy. Poblacion, Mandaluyong City</p>
+      </div>
+      <p>&copy; 2026 Veterinary Clinic Management and Appointment System. All rights reserved.</p>
+    </footer>
+
+  </main>
+</div>
