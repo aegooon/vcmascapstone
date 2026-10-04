@@ -282,7 +282,8 @@ try {
             if (!$clientId) { $pdo->rollBack(); respond(422, ['error' => ['code' => 'PATIENT_NOT_FOUND', 'message' => 'The patient was not found.']]); }
             $invoiceId = uuid();
             $invoiceNumber = 'INV-' . gmdate('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
-            $pdo->prepare('INSERT INTO invoices (id, invoice_number, client_id, pet_id, status, subtotal, total, balance_due, created_by) VALUES (:id, :number, :client, :pet, "issued", :total, :total, :total, :user)')->execute(['id' => $invoiceId, 'number' => $invoiceNumber, 'client' => $clientId, 'pet' => $patientId, 'total' => round($quantity * (float) $item['client_price'], 2), 'user' => $current['id']]);
+            $chargeTotal = round($quantity * (float) $item['client_price'], 2);
+            $pdo->prepare('INSERT INTO invoices (id, invoice_number, client_id, pet_id, status, subtotal, total, balance_due, created_by) VALUES (:id, :number, :client, :pet, "issued", :subtotal, :total, :balance, :user)')->execute(['id' => $invoiceId, 'number' => $invoiceNumber, 'client' => $clientId, 'pet' => $patientId, 'subtotal' => $chargeTotal, 'total' => $chargeTotal, 'balance' => $chargeTotal, 'user' => $current['id']]);
         }
         $transactionId = uuid();
         $pdo->prepare('INSERT INTO inventory_transactions (id, inventory_item_id, type, quantity_delta, quantity_before, quantity_after, unit_cost, client_price, patient_id, invoice_id, reason, client_request_id, created_by) VALUES (:id, :item, :type, :delta, :before, :after, :cost, :price, :patient, :invoice, :reason, :request_id, :user)')->execute(['id' => $transactionId, 'item' => $itemId, 'type' => $type, 'delta' => $delta, 'before' => $before, 'after' => $after, 'cost' => $item['unit_cost'], 'price' => $item['client_price'], 'patient' => $patientId, 'invoice' => $invoiceId, 'reason' => $reason, 'request_id' => $requestId, 'user' => $current['id']]);
@@ -349,7 +350,7 @@ try {
         $total = round($subtotal + $taxTotal - $discount, 2);
         $invoiceId = uuid();
         $number = 'INV-' . gmdate('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(2)));
-        $pdo->prepare('INSERT INTO invoices (id, invoice_number, client_id, pet_id, status, subtotal, tax_total, discount_total, total, balance_due, created_by) VALUES (:id, :number, :client, :pet, "issued", :subtotal, :tax, :discount, :total, :total, :user)')->execute(['id' => $invoiceId, 'number' => $number, 'client' => $clientId, 'pet' => $petId, 'subtotal' => $subtotal, 'tax' => $taxTotal, 'discount' => $discount, 'total' => $total, 'user' => $current['id']]);
+        $pdo->prepare('INSERT INTO invoices (id, invoice_number, client_id, pet_id, status, subtotal, tax_total, discount_total, total, balance_due, created_by) VALUES (:id, :number, :client, :pet, "issued", :subtotal, :tax, :discount, :total, :balance, :user)')->execute(['id' => $invoiceId, 'number' => $number, 'client' => $clientId, 'pet' => $petId, 'subtotal' => $subtotal, 'tax' => $taxTotal, 'discount' => $discount, 'total' => $total, 'balance' => $total, 'user' => $current['id']]);
         foreach ($normalized as [$description, $quantity, $unitPrice, $lineTax, $lineTotal, $serviceId]) {
             $pdo->prepare('INSERT INTO invoice_lines (id, invoice_id, line_type, description, service_id, quantity, unit_price, tax_amount, line_total) VALUES (:id, :invoice, :type, :description, :service, :quantity, :price, :tax, :total)')->execute(['id' => uuid(), 'invoice' => $invoiceId, 'type' => $serviceId ? 'service' : 'adjustment', 'description' => $description, 'service' => $serviceId ?: null, 'quantity' => $quantity, 'price' => $unitPrice, 'tax' => $lineTax, 'total' => $lineTotal]);
         }
