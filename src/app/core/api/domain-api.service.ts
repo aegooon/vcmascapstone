@@ -104,4 +104,8 @@ export class DomainApiService {
   appointments(): Observable<ApiEnvelope<{ appointments: AppointmentRecord[] }>> {
     return this.http.get<ApiEnvelope<{ appointments: AppointmentRecord[] }>>('/api/v1/appointments');
   }
+
+  createAppointment(payload: { client_id: string; pet_id: string; starts_at: string; ends_at: string; reason?: string; room?: string; veterinarian_id?: string; service_id?: string }): Observable<ApiEnvelope<{ appointment_id: string; status: string }>> {
+    return this.http.post<ApiEnvelope<{ appointment_id: string; status: string }>>('/api/v1/appointments', payload);
+  }
 }

@@ -124,6 +124,35 @@ try {
         respond(200, ['data' => ['appointments' => $rows]]);
     }
 
+    if ($method === 'POST' && $resource === 'appointments') {
+        $current = requireUser($pdo);
+        $data = input();
+        $clientId = trim((string) ($data['client_id'] ?? ''));
+        $petId = trim((string) ($data['pet_id'] ?? ''));
+        $startsAt = trim((string) ($data['starts_at'] ?? ''));
+        $endsAt = trim((string) ($data['ends_at'] ?? ''));
+        $reason = trim((string) ($data['reason'] ?? ''));
+        if ($clientId === '' || $petId === '' || $startsAt === '' || $endsAt === '') respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'Client, patient, start time, and end time are required.']]);
+        $start = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $startsAt, new DateTimeZone('Asia/Manila'));
+        $end = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $endsAt, new DateTimeZone('Asia/Manila'));
+        if (!$start || !$end || $start >= $end) respond(422, ['error' => ['code' => 'INVALID_TIME_RANGE', 'message' => 'Appointment start must be before appointment end.']]);
+        $clinic = $pdo->query('SELECT opening_time, closing_time FROM clinic_settings WHERE id = 1')->fetch();
+        if ($clinic && ($start->format('H:i:s') < $clinic['opening_time'] || $end->format('H:i:s') > $clinic['closing_time'])) respond(422, ['error' => ['code' => 'OUTSIDE_CLINIC_HOURS', 'message' => 'The appointment is outside clinic hours.']]);
+        $pet = $pdo->prepare('SELECT id FROM pets WHERE id = :pet AND client_id = :client AND status = "active"');
+        $pet->execute(['pet' => $petId, 'client' => $clientId]);
+        if (!$pet->fetchColumn()) respond(422, ['error' => ['code' => 'INVALID_PATIENT_OWNER', 'message' => 'The patient does not belong to the selected client.']]);
+        $vetId = trim((string) ($data['veterinarian_id'] ?? '')) ?: null;
+        $conflictQuery = 'SELECT id FROM appointments WHERE status NOT IN ("cancelled", "no_show") AND starts_at < :ends_at AND ends_at > :starts_at';
+        $conflictParams = ['starts_at' => $start->format('Y-m-d H:i:s'), 'ends_at' => $end->format('Y-m-d H:i:s')];
+        if ($vetId !== null) { $conflictQuery .= ' AND veterinarian_id = :vet'; $conflictParams['vet'] = $vetId; }
+        $conflict = $pdo->prepare($conflictQuery . ' LIMIT 1');
+        $conflict->execute($conflictParams);
+        if ($conflict->fetch()) respond(409, ['error' => ['code' => 'SCHEDULE_CONFLICT', 'message' => 'The requested time conflicts with an existing appointment.']]);
+        $id = uuid();
+        $pdo->prepare('INSERT INTO appointments (id, client_id, pet_id, veterinarian_id, service_id, room, starts_at, ends_at, status, reason, created_by) VALUES (:id, :client, :pet, :vet, :service, :room, :starts, :ends, "requested", :reason, :created_by)')->execute(['id' => $id, 'client' => $clientId, 'pet' => $petId, 'vet' => $vetId, 'service' => trim((string) ($data['service_id'] ?? '')) ?: null, 'room' => trim((string) ($data['room'] ?? '')) ?: null, 'starts' => $start->format('Y-m-d H:i:s'), 'ends' => $end->format('Y-m-d H:i:s'), 'reason' => $reason ?: null, 'created_by' => $current['id']]);
+        respond(201, ['data' => ['appointment_id' => $id, 'status' => 'requested']]);
+    }
+
     if ($method === 'GET' && $resource === 'inventory') {
         requireUser($pdo);
         $rows = $pdo->query('SELECT id, sku, name, category, unit, quantity_on_hand, reorder_level, unit_cost, client_price, chargeable, active, updated_at FROM inventory_items WHERE active = 1 ORDER BY name')->fetchAll();
