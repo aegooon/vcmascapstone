@@ -6,6 +6,7 @@ import { DomainApiService } from '../../core/api/domain-api.service';
 
 export interface InventoryItem {
   id: number;
+  serverId?: string;
   name: string;
   category: 'Drugs' | 'Medical Items' | 'Laboratory Equipment' | 'Pet Food';
   stock: number;
@@ -56,7 +57,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.api.inventory().subscribe({ next: ({ data }) => {
-      this.items = data.items.map((item, index) => ({ id: index + 1, name: item.name, category: this.displayCategory(item.category), stock: Number(item.quantity_on_hand), unit: item.unit, price: Number(item.client_price), lastUpdated: item.updated_at.slice(0, 10) }));
+      this.items = data.items.map((item, index) => ({ id: index + 1, serverId: item.id, name: item.name, category: this.displayCategory(item.category), stock: Number(item.quantity_on_hand), unit: item.unit, price: Number(item.client_price), lastUpdated: item.updated_at.slice(0, 10) }));
     } });
     this.timeInterval = setInterval(() => {
       this.currentTime = new Date();
@@ -122,24 +123,22 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
     this.currentItem.lastUpdated = new Date().toISOString().split('T')[0];
 
-    if (this.isEditMode) {
+    const payload = { name: this.currentItem.name, category: this.apiCategory(this.currentItem.category), unit: this.currentItem.unit, quantity_on_hand: this.currentItem.stock, reorder_level: 0, unit_cost: this.currentItem.price, client_price: this.currentItem.price, chargeable: true };
+    if (this.isEditMode && this.currentItem.serverId) {
       const index = this.items.findIndex(i => i.id === this.currentItem.id);
       if (index !== -1) {
-        this.items[index] = { ...this.currentItem };
+        this.api.updateInventoryItem(this.currentItem.serverId, payload).subscribe({ next: () => { this.items[index] = { ...this.currentItem }; this.closeModal(); } });
       }
     } else {
-      this.currentItem.id = Date.now();
-      this.items.unshift({ ...this.currentItem });
+      this.api.createInventoryItem(payload).subscribe({ next: ({ data }) => { this.currentItem.id = Date.now(); this.currentItem.serverId = data.id; this.items.unshift({ ...this.currentItem }); this.closeModal(); } });
     }
-
-    this.closeModal();
   }
 
   // DELETE Logic
   deleteItem(id: number): void {
-    if (confirm('Are you sure you want to delete this inventory item?')) {
-      this.items = this.items.filter(item => item.id !== id);
-    }
+    const item = this.items.find(candidate => candidate.id === id);
+    if (!item?.serverId) return;
+    this.api.deleteInventoryItem(item.serverId).subscribe({ next: () => { this.items = this.items.filter(candidate => candidate.id !== id); } });
   }
 
   private getEmptyItem(): InventoryItem {
@@ -157,6 +156,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private displayCategory(category: string): InventoryItem['category'] {
     const labels: Record<string, InventoryItem['category']> = { drugs: 'Drugs', medical_items: 'Medical Items', laboratory_equipment: 'Laboratory Equipment', pet_food: 'Pet Food', pet_supplies: 'Pet Food', other: 'Medical Items' };
     return labels[category] ?? 'Medical Items';
+  }
+
+  private apiCategory(category: InventoryItem['category']): string {
+    const values: Record<InventoryItem['category'], string> = { Drugs: 'drugs', 'Medical Items': 'medical_items', 'Laboratory Equipment': 'laboratory_equipment', 'Pet Food': 'pet_food' };
+    return values[category];
   }
 
   logout(): void {

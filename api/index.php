@@ -124,6 +124,39 @@ try {
         respond(200, ['data' => ['items' => $rows]]);
     }
 
+    if (($resource === 'items' && $method === 'POST') || ($method === 'PATCH' && ($parts[count($parts) - 2] ?? '') === 'items')) {
+        requireUser($pdo);
+        $data = input();
+        $name = trim((string) ($data['name'] ?? ''));
+        $category = (string) ($data['category'] ?? 'other');
+        $unit = trim((string) ($data['unit'] ?? ''));
+        $quantity = (float) ($data['quantity_on_hand'] ?? 0);
+        $reorder = (float) ($data['reorder_level'] ?? 0);
+        $cost = (float) ($data['unit_cost'] ?? 0);
+        $price = (float) ($data['client_price'] ?? 0);
+        $categories = ['drugs', 'medical_items', 'laboratory_equipment', 'pet_food', 'pet_supplies', 'other'];
+        if ($name === '' || $unit === '' || !in_array($category, $categories, true) || $quantity < 0 || $reorder < 0 || $cost < 0 || $price < 0) respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'Name, category, unit, and non-negative quantities and prices are required.']]);
+        if ($method === 'POST') {
+            $id = uuid();
+            $pdo->prepare('INSERT INTO inventory_items (id, sku, name, category, unit, supplier_name, quantity_on_hand, reorder_level, unit_cost, client_price, chargeable, active) VALUES (:id, :sku, :name, :category, :unit, :supplier, :quantity, :reorder, :cost, :price, :chargeable, 1)')->execute(['id' => $id, 'sku' => trim((string) ($data['sku'] ?? '')) ?: null, 'name' => $name, 'category' => $category, 'unit' => $unit, 'supplier' => trim((string) ($data['supplier_name'] ?? '')) ?: null, 'quantity' => $quantity, 'reorder' => $reorder, 'cost' => $cost, 'price' => $price, 'chargeable' => !empty($data['chargeable']) ? 1 : 0]);
+            respond(201, ['data' => ['id' => $id]]);
+        }
+        $id = $parts[count($parts) - 2] ?? '';
+        $stmt = $pdo->prepare('UPDATE inventory_items SET name = :name, category = :category, unit = :unit, quantity_on_hand = :quantity, reorder_level = :reorder, unit_cost = :cost, client_price = :price WHERE id = :id AND active = 1');
+        $stmt->execute(['id' => $id, 'name' => $name, 'category' => $category, 'unit' => $unit, 'quantity' => $quantity, 'reorder' => $reorder, 'cost' => $cost, 'price' => $price]);
+        if ($stmt->rowCount() === 0) respond(404, ['error' => ['code' => 'ITEM_NOT_FOUND', 'message' => 'The inventory item was not found.']]);
+        respond(200, ['data' => ['id' => $id]]);
+    }
+
+    if ($method === 'DELETE' && $resource !== '' && count($parts) >= 2 && ($parts[count($parts) - 2] ?? '') === 'items') {
+        requireUser($pdo);
+        $id = $resource;
+        $stmt = $pdo->prepare('UPDATE inventory_items SET active = 0 WHERE id = :id AND active = 1');
+        $stmt->execute(['id' => $id]);
+        if ($stmt->rowCount() === 0) respond(404, ['error' => ['code' => 'ITEM_NOT_FOUND', 'message' => 'The inventory item was not found.']]);
+        respond(200, ['data' => ['id' => $id, 'deleted' => true]]);
+    }
+
     if ($method === 'POST' && $resource === 'transactions') {
         $current = requireUser($pdo);
         $data = input();

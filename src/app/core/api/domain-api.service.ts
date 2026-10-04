@@ -45,6 +45,18 @@ export class DomainApiService {
     return this.http.get<ApiEnvelope<{ items: InventoryRecord[] }>>('/api/v1/inventory');
   }
 
+  createInventoryItem(payload: { name: string; category: string; unit: string; quantity_on_hand: number; reorder_level: number; unit_cost: number; client_price: number; chargeable: boolean }): Observable<ApiEnvelope<{ id: string }>> {
+    return this.http.post<ApiEnvelope<{ id: string }>>('/api/v1/inventory/items', payload);
+  }
+
+  updateInventoryItem(id: string, payload: { name: string; category: string; unit: string; quantity_on_hand: number; reorder_level: number; unit_cost: number; client_price: number }): Observable<ApiEnvelope<{ id: string }>> {
+    return this.http.patch<ApiEnvelope<{ id: string }>>(`/api/v1/inventory/items/${id}`, payload);
+  }
+
+  deleteInventoryItem(id: string): Observable<ApiEnvelope<{ id: string; deleted: boolean }>> {
+    return this.http.delete<ApiEnvelope<{ id: string; deleted: boolean }>>(`/api/v1/inventory/items/${id}`);
+  }
+
   recordInventoryTransaction(payload: { inventory_item_id: string; type: 'purchase' | 'patient_usage' | 'return' | 'wastage' | 'correction'; quantity: number; reason: string; client_request_id: string; patient_id?: string; quantity_delta?: number }): Observable<ApiEnvelope<{ transaction_id: string; invoice_id: string | null; quantity_after: number; idempotent: boolean }>> {
     return this.http.post<ApiEnvelope<{ transaction_id: string; invoice_id: string | null; quantity_after: number; idempotent: boolean }>>('/api/v1/inventory/transactions', payload);
   }
