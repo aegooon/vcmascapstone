@@ -37,6 +37,18 @@ export interface PatientRecord {
   last_visit: string | null;
 }
 
+export interface AppointmentRecord {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  pet_name: string;
+  breed: string | null;
+  owner_name: string;
+  reason: string;
+  room: string;
+  status: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DomainApiService {
   private readonly http = inject(HttpClient);
@@ -87,5 +99,9 @@ export class DomainApiService {
 
   createEmrVisit(payload: { pet_id: string; clinical_notes: string; diagnosis?: string; treatment_plan?: string; follow_up_instructions?: string }): Observable<ApiEnvelope<{ visit_id: string; pet_id: string }>> {
     return this.http.post<ApiEnvelope<{ visit_id: string; pet_id: string }>>('/api/v1/emr/visits', payload);
+  }
+
+  appointments(): Observable<ApiEnvelope<{ appointments: AppointmentRecord[] }>> {
+    return this.http.get<ApiEnvelope<{ appointments: AppointmentRecord[] }>>('/api/v1/appointments');
   }
 }

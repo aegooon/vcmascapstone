@@ -2,6 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { inject } from '@angular/core';
+import { DomainApiService } from '../../core/api/domain-api.service';
 
 export interface ScheduleItem {
   id: number;
@@ -24,6 +26,7 @@ export interface ScheduleItem {
   styleUrl: './scheduling.css'
 })
 export class SchedulingComponent implements OnInit, OnDestroy {
+  private readonly api = inject(DomainApiService);
   doctorName = 'Dr. Judit Maesa';
   currentTime: Date = new Date();
 
@@ -107,9 +110,15 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   constructor(private router: Router) {}
 
   ngOnInit(): void {
+    this.api.appointments().subscribe({ next: ({ data }) => { this.schedules = data.appointments.map((item, index) => ({ id: index + 1, time: item.appointment_time, date: item.appointment_date, petName: item.pet_name, breed: item.breed ?? '', ownerName: item.owner_name, reason: item.reason, room: item.room, status: this.displayStatus(item.status), statusColor: 'bg-blue-600' })); } });
     this.timeInterval = setInterval(() => {
       this.currentTime = new Date();
     }, 60000);
+  }
+
+  private displayStatus(status: string): ScheduleItem['status'] {
+    const values: Record<string, ScheduleItem['status']> = { requested: 'Scheduled', scheduled: 'Scheduled', checked_in: 'Checked In', in_progress: 'In Progress', completed: 'Completed', cancelled: 'Cancelled', no_show: 'Cancelled' };
+    return values[status] ?? 'Scheduled';
   }
 
   ngOnDestroy(): void {

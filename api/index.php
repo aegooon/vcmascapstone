@@ -118,6 +118,12 @@ try {
         respond(200, ['data' => ['clinic' => $settings ?: null]]);
     }
 
+    if ($method === 'GET' && $resource === 'appointments') {
+        requireUser($pdo);
+        $rows = $pdo->query('SELECT a.id, DATE_FORMAT(a.starts_at, "%Y-%m-%d") AS appointment_date, DATE_FORMAT(a.starts_at, "%h:%i %p") AS appointment_time, p.name AS pet_name, p.breed, c.full_name AS owner_name, COALESCE(a.reason, "General appointment") AS reason, COALESCE(a.room, "Unassigned") AS room, a.status FROM appointments a JOIN pets p ON p.id = a.pet_id JOIN clients c ON c.id = a.client_id ORDER BY a.starts_at')->fetchAll();
+        respond(200, ['data' => ['appointments' => $rows]]);
+    }
+
     if ($method === 'GET' && $resource === 'inventory') {
         requireUser($pdo);
         $rows = $pdo->query('SELECT id, sku, name, category, unit, quantity_on_hand, reorder_level, unit_cost, client_price, chargeable, active, updated_at FROM inventory_items WHERE active = 1 ORDER BY name')->fetchAll();
