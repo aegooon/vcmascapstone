@@ -318,6 +318,20 @@ try {
         respond(200, ['data' => ['patient_count' => $count, 'patients' => $rows]]);
     }
 
+    if ($method === 'POST' && $resource === 'visits') {
+        $current = requireUser($pdo);
+        $data = input();
+        $petId = trim((string) ($data['pet_id'] ?? ''));
+        $notes = trim((string) ($data['clinical_notes'] ?? ''));
+        if ($petId === '' || $notes === '') respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'Patient and clinical notes are required.']]);
+        $pet = $pdo->prepare('SELECT id FROM pets WHERE id = :id AND status = "active"');
+        $pet->execute(['id' => $petId]);
+        if (!$pet->fetchColumn()) respond(404, ['error' => ['code' => 'PATIENT_NOT_FOUND', 'message' => 'The patient was not found.']]);
+        $visitId = uuid();
+        $pdo->prepare('INSERT INTO emr_visits (id, pet_id, author_id, visited_at, weight_kg, temperature_c, clinical_notes, diagnosis, treatment_plan, follow_up_instructions) VALUES (:id, :pet, :author, COALESCE(:visited_at, UTC_TIMESTAMP(6)), :weight, :temperature, :notes, :diagnosis, :treatment, :follow_up)')->execute(['id' => $visitId, 'pet' => $petId, 'author' => $current['id'], 'visited_at' => trim((string) ($data['visited_at'] ?? '')) ?: null, 'weight' => ($data['weight_kg'] ?? null) !== null ? (float) $data['weight_kg'] : null, 'temperature' => ($data['temperature_c'] ?? null) !== null ? (float) $data['temperature_c'] : null, 'notes' => $notes, 'diagnosis' => trim((string) ($data['diagnosis'] ?? '')) ?: null, 'treatment' => trim((string) ($data['treatment_plan'] ?? '')) ?: null, 'follow_up' => trim((string) ($data['follow_up_instructions'] ?? '')) ?: null]);
+        respond(201, ['data' => ['visit_id' => $visitId, 'pet_id' => $petId]]);
+    }
+
     respond(404, ['error' => ['code' => 'NOT_FOUND', 'message' => 'The requested endpoint does not exist.']]);
 } catch (Throwable $exception) {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) $pdo->rollBack();

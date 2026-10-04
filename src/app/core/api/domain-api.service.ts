@@ -84,4 +84,8 @@ export class DomainApiService {
   patients(): Observable<ApiEnvelope<{ patient_count: number; patients: PatientRecord[] }>> {
     return this.http.get<ApiEnvelope<{ patient_count: number; patients: PatientRecord[] }>>('/api/v1/emr');
   }
+
+  createEmrVisit(payload: { pet_id: string; clinical_notes: string; diagnosis?: string; treatment_plan?: string; follow_up_instructions?: string }): Observable<ApiEnvelope<{ visit_id: string; pet_id: string }>> {
+    return this.http.post<ApiEnvelope<{ visit_id: string; pet_id: string }>>('/api/v1/emr/visits', payload);
+  }
 }

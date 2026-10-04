@@ -15,11 +15,30 @@ export class Emr {
   loading = true;
   error = '';
   searchTerm = '';
+  selectedPatient: PatientRecord | null = null;
+  clinicalNotes = '';
+  diagnosis = '';
+  treatmentPlan = '';
+  followUp = '';
+  saveMessage = '';
 
   get filteredPatients(): PatientRecord[] {
     const query = this.searchTerm.trim().toLowerCase();
     if (!query) return this.patients;
     return this.patients.filter((patient) => `${patient.name} ${patient.species} ${patient.breed ?? ''} ${patient.client_name}`.toLowerCase().includes(query));
+  }
+
+  selectPatient(patient: PatientRecord): void {
+    this.selectedPatient = patient;
+    this.saveMessage = '';
+  }
+
+  saveVisit(): void {
+    if (!this.selectedPatient || !this.clinicalNotes.trim()) return;
+    this.api.createEmrVisit({ pet_id: this.selectedPatient.id, clinical_notes: this.clinicalNotes, diagnosis: this.diagnosis, treatment_plan: this.treatmentPlan, follow_up_instructions: this.followUp }).subscribe({
+      next: () => { this.saveMessage = 'Clinical visit saved.'; this.clinicalNotes = ''; this.diagnosis = ''; this.treatmentPlan = ''; this.followUp = ''; this.selectedPatient = null; },
+      error: () => { this.saveMessage = 'Unable to save the clinical visit.'; },
+    });
   }
 
   constructor() {
