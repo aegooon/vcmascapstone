@@ -3,8 +3,23 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 $config = require __DIR__ . '/config.php';
+header('X-Content-Type-Options: nosniff');
+header('Cache-Control: no-store');
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin !== '' && $origin === ($config['allowed_origin'] ?? '')) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+    header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
+    header('Vary: Origin');
+}
+if ($origin !== '' && $origin !== ($config['allowed_origin'] ?? '')) {
+    http_response_code(403);
+    echo json_encode(['error' => ['code' => 'ORIGIN_DENIED', 'message' => 'Origin is not allowed.']]);
+    exit;
+}
 session_name((string) $config['session_name']);
-session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => false]);
+session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off']);
 session_start();
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
@@ -116,6 +131,11 @@ try {
     if ($method === 'GET' && $resource === 'clinic') {
         $settings = $pdo->query('SELECT clinic_name, address, mobile_number, telephone_number, opening_time, closing_time, timezone FROM clinic_settings WHERE id = 1')->fetch();
         respond(200, ['data' => ['clinic' => $settings ?: null]]);
+    }
+
+    $activeUser = requireUser($pdo);
+    if ($activeUser['role'] === 'client' && !($method === 'GET' && $resource === 'invoices')) {
+        respond(403, ['error' => ['code' => 'FORBIDDEN', 'message' => 'Staff access is required.']]);
     }
 
     if ($method === 'GET' && $resource === 'clients') {
@@ -300,6 +320,14 @@ try {
         $petId = trim((string) ($data['pet_id'] ?? '')) ?: null;
         $lines = $data['lines'] ?? [];
         if ($clientId === '' || !is_array($lines) || count($lines) === 0) respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'A client and at least one invoice line are required.']]);
+        $clientStmt = $pdo->prepare('SELECT id FROM clients WHERE id = :id');
+        $clientStmt->execute(['id' => $clientId]);
+        if (!$clientStmt->fetchColumn()) respond(422, ['error' => ['code' => 'CLIENT_NOT_FOUND', 'message' => 'The selected client was not found.']]);
+        if ($petId !== null) {
+            $petStmt = $pdo->prepare('SELECT id FROM pets WHERE id = :pet AND client_id = :client AND status = "active"');
+            $petStmt->execute(['pet' => $petId, 'client' => $clientId]);
+            if (!$petStmt->fetchColumn()) respond(422, ['error' => ['code' => 'INVALID_PATIENT_OWNER', 'message' => 'The patient does not belong to the selected client.']]);
+        }
         $pdo->beginTransaction();
         $subtotal = 0.0;
         $taxTotal = 0.0;
@@ -413,7 +441,7 @@ try {
         respond(201, ['data' => ['visit_id' => $visitId, 'pet_id' => $petId]]);
     }
 
-    if ($method === 'GET' && $resource === 'visits' && ($parts[count($parts) - 2] ?? '') === 'pets') {
+    if ($method === 'GET' && $resource === 'visits' && ($parts[count($parts) - 3] ?? '') === 'pets') {
         requireUser($pdo);
         $petId = $parts[count($parts) - 2];
         $stmt = $pdo->prepare('SELECT v.id, v.visited_at, v.clinical_notes, v.diagnosis, v.treatment_plan, v.follow_up_instructions, u.full_name AS author_name FROM emr_visits v JOIN users u ON u.id = v.author_id WHERE v.pet_id = :pet ORDER BY v.visited_at DESC');
@@ -421,7 +449,55 @@ try {
         respond(200, ['data' => ['visits' => $stmt->fetchAll()]]);
     }
 
-    if (in_array($method, ['GET', 'POST'], true) && $resource === 'records' && ($parts[count($parts) - 2] ?? '') === 'pets') {
+    if ($method === 'GET' && ($parts[count($parts) - 2] ?? '') === 'attachments') {
+        $attachmentId = $resource;
+        $stmt = $pdo->prepare('SELECT original_name, media_type, storage_path FROM emr_attachments WHERE id = :id');
+        $stmt->execute(['id' => $attachmentId]);
+        $attachment = $stmt->fetch();
+        if (!$attachment) respond(404, ['error' => ['code' => 'NOT_FOUND', 'message' => 'Attachment not found.']]);
+        $uploadRoot = realpath((string) $config['upload_dir']);
+        $filePath = realpath((string) $attachment['storage_path']);
+        if (!$uploadRoot || !$filePath || !str_starts_with($filePath, $uploadRoot . DIRECTORY_SEPARATOR) || !is_file($filePath)) {
+            respond(404, ['error' => ['code' => 'FILE_MISSING', 'message' => 'Attachment file is unavailable.']]);
+        }
+        header('Content-Type: ' . $attachment['media_type']);
+        header('Content-Disposition: attachment; filename="' . str_replace(['"', "\r", "\n"], '', basename($attachment['original_name'])) . '"');
+        header('Content-Length: ' . filesize($filePath));
+        readfile($filePath);
+        exit;
+    }
+
+    if ($method === 'POST' && $resource === 'attachments' && ($parts[count($parts) - 3] ?? '') === 'pets') {
+        $petId = $parts[count($parts) - 2];
+        $file = $_FILES['file'] ?? null;
+        if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || ($file['size'] ?? 0) < 1 || $file['size'] > 5 * 1024 * 1024) {
+            respond(422, ['error' => ['code' => 'INVALID_FILE', 'message' => 'Select a file smaller than 5 MB.']]);
+        }
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+        $extensions = ['application/pdf' => 'pdf', 'image/png' => 'png', 'image/jpeg' => 'jpg'];
+        if (!isset($extensions[$mime])) respond(422, ['error' => ['code' => 'INVALID_FILE_TYPE', 'message' => 'Only PDF, PNG, and JPEG files are supported.']]);
+        $petStmt = $pdo->prepare('SELECT id FROM pets WHERE id = :id');
+        $petStmt->execute(['id' => $petId]);
+        if (!$petStmt->fetchColumn()) respond(404, ['error' => ['code' => 'PATIENT_NOT_FOUND', 'message' => 'Patient not found.']]);
+        $uploadDir = (string) $config['upload_dir'];
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0700, true) && !is_dir($uploadDir)) throw new RuntimeException('Unable to create attachment directory.');
+        $attachmentId = uuid();
+        $storagePath = rtrim($uploadDir, '/\\') . DIRECTORY_SEPARATOR . $attachmentId . '.' . $extensions[$mime];
+        if (!move_uploaded_file($file['tmp_name'], $storagePath)) throw new RuntimeException('Unable to store attachment.');
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare('INSERT INTO emr_attachments (id, pet_id, storage_path, original_name, media_type, size_bytes, uploaded_by) VALUES (:id, :pet, :path, :name, :mime, :size, :user)')->execute(['id' => $attachmentId, 'pet' => $petId, 'path' => $storagePath, 'name' => substr(basename((string) $file['name']), 0, 255), 'mime' => $mime, 'size' => $file['size'], 'user' => $activeUser['id']]);
+            $pdo->prepare('INSERT INTO audit_events (id, actor_user_id, action, entity_type, entity_id, metadata) VALUES (:id, :user, "uploaded", "emr_attachment", :pet, :metadata)')->execute(['id' => uuid(), 'user' => $activeUser['id'], 'pet' => $petId, 'metadata' => json_encode(['attachment_id' => $attachmentId], JSON_THROW_ON_ERROR)]);
+            $pdo->commit();
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            unlink($storagePath);
+            throw $exception;
+        }
+        respond(201, ['data' => ['attachment_id' => $attachmentId]]);
+    }
+
+    if (in_array($method, ['GET', 'POST'], true) && $resource === 'records' && ($parts[count($parts) - 3] ?? '') === 'pets') {
         $current = requireUser($pdo);
         $petId = $parts[count($parts) - 2];
         if ($method === 'GET') {

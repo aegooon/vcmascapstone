@@ -128,6 +128,16 @@ export class DomainApiService {
     return this.http.post<ApiEnvelope<{ record_id: string; type: string }>>(`/api/v1/pets/${petId}/records`, payload);
   }
 
+  uploadEmrAttachment(petId: string, file: File): Observable<ApiEnvelope<{ attachment_id: string }>> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post<ApiEnvelope<{ attachment_id: string }>>(`/api/v1/pets/${petId}/attachments`, body);
+  }
+
+  downloadEmrAttachment(id: string): Observable<Blob> {
+    return this.http.get(`/api/v1/attachments/${id}`, { responseType: 'blob' });
+  }
+
   appointments(): Observable<ApiEnvelope<{ appointments: AppointmentRecord[] }>> {
     return this.http.get<ApiEnvelope<{ appointments: AppointmentRecord[] }>>('/api/v1/appointments');
   }

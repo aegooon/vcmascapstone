@@ -9,4 +9,5 @@ return [
     ],
     'session_name' => 'vcmas_session',
     'allowed_origin' => 'http://localhost:4200',
+    'upload_dir' => 'C:/xampp/vcmas-storage/emr',
 ];

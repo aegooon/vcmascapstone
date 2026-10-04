@@ -71,6 +71,8 @@ export class ClientDashboardComponent implements OnInit, OnDestroy {
     upcomingAppointments: 1,
     unreadNotifications: 3
   };
+  actionMessage = '';
+  pendingDeletePetId: number | null = null;
 
   recentNotifications: NotificationPreview[] = [
     { text: 'Your appointment for Bella is confirmed.', time: '10 mins ago', read: false, iconColor: 'text-blue-600', bgColor: 'bg-blue-50' },
@@ -121,10 +123,19 @@ export class ClientDashboardComponent implements OnInit, OnDestroy {
   }
 
   deletePet(id: number): void {
-    if (confirm('Remove this pet from your profile?')) {
-      this.pets = this.pets.filter(p => p.id !== id);
-      this.stats.totalPets = this.pets.length;
-    }
+    this.pendingDeletePetId = id;
+  }
+
+  cancelDeletePet(): void {
+    this.pendingDeletePetId = null;
+  }
+
+  confirmDeletePet(): void {
+    if (this.pendingDeletePetId === null) return;
+    this.pets = this.pets.filter(p => p.id !== this.pendingDeletePetId);
+    this.stats.totalPets = this.pets.length;
+    this.actionMessage = 'Pet removed from the profile.';
+    this.pendingDeletePetId = null;
   }
 
   private getEmptyPet(): Pet {
@@ -163,7 +174,7 @@ export class ClientDashboardComponent implements OnInit, OnDestroy {
     this.nextAppointment.time = parsedDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
     this.closeReschedule();
-    alert('Your appointment has been rescheduled to ' + this.nextAppointment.date + ' at ' + this.nextAppointment.time + '.');
+    this.actionMessage = `Your appointment has been rescheduled to ${this.nextAppointment.date} at ${this.nextAppointment.time}.`;
   }
 
   constructor(private router: Router) {}

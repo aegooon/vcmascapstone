@@ -5,7 +5,7 @@
 **Version:** 1.0  
 **Status:** Baseline for all future revisions  
 
-**Implementation progress:** P0-01 through P0-05 are complete. P0-06 and P0-07 now have the XAMPP PHP session API, Angular authentication service, session restoration, and route guards implemented. P0-08 is partially implemented through typed API services and credentials handling. P0-09 now supports database-backed inventory item creation, editing, soft deletion, transaction recording, recent transaction history, stock-in, patient usage, returns, wastage, and corrections through the adjustment UI. P0-11 has row locking, negative-stock protection, idempotency, and billable patient-usage invoice creation; reconciliation verification remains active. P0-10 now has server-calculated invoice creation, payment, void, refund, payment history, invoice creation UI, void controls, and refund interaction; reconciliation verification remains active. P0-12 now loads and records vaccinations, laboratory results, medications, clinical visits, attachments metadata, and audit history for selected patients; actual binary file upload/storage and complete audit verification remain active. Scheduling now loads client and pet selectors, creates validated appointments, edits status, checks in, marks in progress/completed, and cancels appointments through MariaDB endpoints. The P1-02 client landing page is implemented with the approved clinic details and responsive shared palette. P0-13 and P0-14 have an initial global responsive/focus baseline, but every route still requires verification. P0-15 and all remaining P1/P2 work remain active until their acceptance criteria are verified.
+**Implementation progress:** P0-01 through P0-05 are complete. P0-06 and P0-07 have the XAMPP PHP session API, Angular authentication service, session restoration, and route guards. P0-08 has typed API services and credential handling. P0-09 supports database-backed inventory item creation, editing, soft deletion, stock transactions, history, stock-in, patient usage, returns, wastage, and corrections. P0-10 and P0-11 have server-calculated invoices, payments, voids, refunds, row locking, negative-stock protection, idempotency, and billable patient-usage invoice lines. P0-12 loads and records vaccinations, laboratory results, medications, clinical visits, binary attachments stored outside the public web root, and audit history for selected patients. Scheduling and the P1-02 client landing page are implemented. Static release gates (PHP lint, Angular application/spec type checks, Angular compiler checks, and production build) pass; live XAMPP database, browser accessibility, responsive viewport, and end-to-end reconciliation checks remain release-test activities.
 **Date:** 2026-10-04
 
 ## 1. Purpose
@@ -16,7 +16,7 @@ VCMAS is a web application for a veterinary clinic. It supports clinic staff and
 
 ## 2. Current project baseline
 
-The current application is an Angular 22 standalone application with these existing areas:
+The current application is an Angular 22 application with these areas:
 
 - Staff login and dashboard
 - Appointment scheduling
@@ -26,7 +26,7 @@ The current application is an Angular 22 standalone application with these exist
 - Client-facing landing page requirement for public clinic information and client entry points
 - Placeholder Billing, EMR, client appointments, client profile, and client notifications components
 
-The current implementation contains mock data, incomplete routes, placeholder actions, and no completed authentication or API integration. The priority requirements below are therefore mandatory stabilization work before the application is treated as production-ready.
+Some dashboard and client-portal summaries still use presentation seed values while their full server-backed workflows are completed. The priority requirements below remain the source of truth for closing those gaps before production use.
 
 ## 3. Goals
 

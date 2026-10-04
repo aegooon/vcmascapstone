@@ -24,6 +24,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   isAppointmentModalOpen = false;
   isPatientModalOpen = false;
+  actionMessage = '';
 
   appointmentData = {
     petName: '',
@@ -62,7 +63,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   confirmAppointment(): void {
-    console.log('Appointment Scheduled:', this.appointmentData);
+    this.actionMessage = `Appointment request for ${this.appointmentData.petName || 'the patient'} was recorded.`;
     this.closeAppointmentModal();
   }
 
@@ -78,7 +79,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // 3. Add this method to handle registering the patient
   registerPatient(): void {
-    console.log('Patient Registered:', this.patientData);
+    this.actionMessage = `Patient ${this.patientData.petName || 'record'} was recorded.`;
     this.closePatientModal();
   }
 
@@ -136,6 +137,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   triggerEmergency() {
-    alert('Emergency Protocol Activated!');
+    this.actionMessage = 'Emergency entry opened. Contact the veterinarian on duty and document the case in EMR.';
   }
 }

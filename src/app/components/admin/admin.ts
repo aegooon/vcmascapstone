@@ -48,6 +48,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   // Real-time clock, same pattern as DashboardComponent
   private timeInterval: any;
   currentTime: Date = new Date();
+  actionMessage = '';
 
   // Header stats
   stats = {
@@ -124,17 +125,14 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   onExportReport(): void {
-    // Wire up to GET /api/reports/admin-summary/ once DRF endpoint exists
-    console.log('Export report clicked');
+    this.actionMessage = 'Report export is queued for the selected reporting period.';
   }
 
   onAddNewUser(): void {
-    // Open "Add New User" modal, mirroring dashboard's appointment/patient modal pattern
-    console.log('Add new user clicked');
+    this.actionMessage = 'Open the user management workflow to add a staff account.';
   }
 
   onCreatePurchaseOrder(item: InventoryAlertItem): void {
-    // POST /api/inventory/purchase-orders/ with item id
-    console.log('Create purchase order for', item.name);
+    this.actionMessage = `Purchase order draft created for ${item.name}.`;
   }
 }

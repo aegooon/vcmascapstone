@@ -31,6 +31,8 @@ export class Emr {
   dosage = '';
   frequency = '';
   recordMessage = '';
+  attachmentFile: File | null = null;
+  attachmentMessage = '';
 
   get filteredPatients(): PatientRecord[] {
     const query = this.searchTerm.trim().toLowerCase();
@@ -66,6 +68,31 @@ export class Emr {
 
   private reloadRecords(): void {
     if (this.selectedPatient) this.api.emrRecords(this.selectedPatient.id).subscribe(({ data }) => { this.records = data; });
+  }
+
+  selectAttachment(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.attachmentFile = input.files?.item(0) ?? null;
+    this.attachmentMessage = '';
+  }
+
+  uploadAttachment(): void {
+    if (!this.selectedPatient || !this.attachmentFile) return;
+    this.api.uploadEmrAttachment(this.selectedPatient.id, this.attachmentFile).subscribe({
+      next: () => { this.attachmentFile = null; this.attachmentMessage = 'Attachment uploaded.'; this.reloadRecords(); },
+      error: () => { this.attachmentMessage = 'Unable to upload attachment. Use PDF, PNG, or JPEG under 5 MB.'; },
+    });
+  }
+
+  downloadAttachment(id: string, name: string): void {
+    this.api.downloadEmrAttachment(id).subscribe({ next: (blob) => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      link.click();
+      URL.revokeObjectURL(url);
+    }, error: () => { this.attachmentMessage = 'Unable to download attachment.'; } });
   }
 
   constructor() {
