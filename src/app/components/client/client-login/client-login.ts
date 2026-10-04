@@ -19,6 +19,6 @@ export class ClientLoginComponent {
 
   onSignIn(): void {
     // TODO: replace with real auth call to DRF (POST /api/client/auth/login/)
-    this.router.navigate(['/client-dashboard']);
+    this.router.navigate(['/client/dashboard']);
   }
 }

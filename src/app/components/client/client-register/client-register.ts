@@ -55,6 +55,6 @@ export class ClientRegisterComponent {
     console.log('Registering client account:', this.formData);
 
     // On success, send them to login to sign in with their new credentials
-    this.router.navigate(['/client-login']);
+    this.router.navigate(['/client/login']);
   }
 }
