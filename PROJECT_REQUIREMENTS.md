@@ -4,6 +4,8 @@
 **Document:** Project Requirements Document (PRD)  
 **Version:** 1.0  
 **Status:** Baseline for all future revisions  
+
+**Implementation progress:** P0-01 through P0-05 are complete. P0-06 and P0-07 now have the XAMPP PHP session API, Angular authentication service, session restoration, and route guards implemented. P0-08 through P0-15 and all P1/P2 work remain active until their acceptance criteria are verified.
 **Date:** 2026-10-04
 
 ## 1. Purpose

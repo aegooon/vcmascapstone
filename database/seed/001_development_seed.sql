@@ -46,10 +46,10 @@ SELECT '00000000-0000-4000-8000-000000000004', id,
 FROM roles WHERE code = 'client';
 
 INSERT IGNORE INTO clients
-  (id, user_id, email, phone, address)
+  (id, user_id, full_name, email, phone, address)
 VALUES
   ('10000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000004',
-   'client@example.test', '09000000004', 'Fictional Demo Address');
+   'Demo Pet Owner', 'client@example.test', '09000000004', 'Fictional Demo Address');
 
 INSERT IGNORE INTO services (id, code, name, description, category, price, tax_rate, active) VALUES
   ('20000000-0000-4000-8000-000000000001', 'consultation', 'Consultation', 'General veterinary consultation.', 'clinical', 500.00, 0.00, TRUE),

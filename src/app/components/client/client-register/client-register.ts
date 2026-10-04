@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-client-register',
@@ -10,6 +11,7 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './client-register.css'
 })
 export class ClientRegisterComponent {
+  private readonly auth = inject(AuthService);
   showPassword = false;
   showConfirmPassword = false;
   errorMessage = '';
@@ -51,10 +53,9 @@ export class ClientRegisterComponent {
       return;
     }
 
-    // TODO: replace with real registration call to DRF (POST /api/client/auth/register/)
-    console.log('Registering client account:', this.formData);
-
-    // On success, send them to login to sign in with their new credentials
-    this.router.navigate(['/client/login']);
+    this.auth.register({ fullName: this.formData.fullName, email: this.formData.email, phone: this.formData.phone, password: this.formData.password }).subscribe((success) => {
+      if (success) this.router.navigate(['/client/login']);
+      else this.errorMessage = this.auth.error();
+    });
   }
 }

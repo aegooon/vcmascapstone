@@ -1,24 +1,29 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-client-login',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   templateUrl: './client-login.html',
   styleUrl: './client-login.css'
 })
 export class ClientLoginComponent {
+  private readonly router = inject(Router);
+  readonly auth = inject(AuthService);
   showPassword = false;
-
-  constructor(private router: Router) {}
+  email = '';
+  password = '';
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }
 
   onSignIn(): void {
-    // TODO: replace with real auth call to DRF (POST /api/client/auth/login/)
-    this.router.navigate(['/client/dashboard']);
+    this.auth.login(this.email, this.password).subscribe((user) => {
+      if (user?.role === 'client') this.router.navigate(['/client/dashboard']);
+    });
   }
 }
