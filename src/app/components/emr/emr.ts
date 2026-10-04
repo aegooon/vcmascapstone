@@ -23,6 +23,14 @@ export class Emr {
   saveMessage = '';
   visits: EmrVisitRecord[] = [];
   records: EmrStructuredRecords | null = null;
+  recordType: 'vaccination' | 'laboratory' | 'medication' = 'vaccination';
+  vaccineName = '';
+  testName = '';
+  resultSummary = '';
+  medicationName = '';
+  dosage = '';
+  frequency = '';
+  recordMessage = '';
 
   get filteredPatients(): PatientRecord[] {
     const query = this.searchTerm.trim().toLowerCase();
@@ -43,6 +51,21 @@ export class Emr {
       next: () => { this.saveMessage = 'Clinical visit saved.'; this.clinicalNotes = ''; this.diagnosis = ''; this.treatmentPlan = ''; this.followUp = ''; if (this.selectedPatient) this.api.emrVisits(this.selectedPatient.id).subscribe(({ data }) => { this.visits = data.visits; }); },
       error: () => { this.saveMessage = 'Unable to save the clinical visit.'; },
     });
+  }
+
+  saveStructuredRecord(): void {
+    if (!this.selectedPatient) return;
+    const payload: Record<string, string> = { type: this.recordType };
+    if (this.recordType === 'vaccination') payload['vaccine_name'] = this.vaccineName;
+    if (this.recordType === 'laboratory') { payload['test_name'] = this.testName; payload['result_summary'] = this.resultSummary; }
+    if (this.recordType === 'medication') { payload['medication_name'] = this.medicationName; payload['dosage'] = this.dosage; payload['frequency'] = this.frequency; }
+    const required = this.recordType === 'vaccination' ? this.vaccineName : this.recordType === 'laboratory' ? this.testName : this.medicationName;
+    if (!required.trim()) return;
+    this.api.createEmrRecord(this.selectedPatient.id, payload).subscribe({ next: () => { this.recordMessage = 'EMR record saved.'; this.vaccineName = ''; this.testName = ''; this.resultSummary = ''; this.medicationName = ''; this.dosage = ''; this.frequency = ''; this.reloadRecords(); }, error: () => { this.recordMessage = 'Unable to save the EMR record.'; } });
+  }
+
+  private reloadRecords(): void {
+    if (this.selectedPatient) this.api.emrRecords(this.selectedPatient.id).subscribe(({ data }) => { this.records = data; });
   }
 
   constructor() {
