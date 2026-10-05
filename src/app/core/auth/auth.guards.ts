@@ -11,3 +11,10 @@ export const clientGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   return auth.user()?.role === 'client' ? true : inject(Router).createUrlTree(['/client/login']);
 };
+
+export const staffGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.user()?.role !== 'client' && auth.user() !== null
+    ? true
+    : inject(Router).createUrlTree(['/login']);
+};

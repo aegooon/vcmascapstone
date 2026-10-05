@@ -1,20 +1,28 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { finalize, timeout } from 'rxjs';
 import { DomainApiService, EmrStructuredRecords, EmrVisitRecord, PatientRecord } from '../../core/api/domain-api.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
   selector: 'app-emr',
   styleUrl: './emr.css',
   templateUrl: './emr.html',
 })
 export class Emr {
   private readonly api = inject(DomainApiService);
+  private readonly router = inject(Router);
+  readonly auth = inject(AuthService);
   patients: PatientRecord[] = [];
   patientCount = 0;
-  loading = true;
+  loading = signal(true);
   error = '';
   searchTerm = '';
+  speciesFilter = 'All';
+  statusFilter = 'Active';
   selectedPatient: PatientRecord | null = null;
   clinicalNotes = '';
   diagnosis = '';
@@ -34,10 +42,28 @@ export class Emr {
   attachmentFile: File | null = null;
   attachmentMessage = '';
 
+  get speciesOptions(): string[] {
+    return ['All', ...new Set(this.patients.map((patient) => patient.species))];
+  }
+
+  get currentUserName(): string {
+    return this.auth.user()?.full_name ?? 'Clinic user';
+  }
+
+  get currentUserRole(): string {
+    const role = this.auth.user()?.role;
+    return role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Authorized staff';
+  }
+
   get filteredPatients(): PatientRecord[] {
     const query = this.searchTerm.trim().toLowerCase();
     if (!query) return this.patients;
-    return this.patients.filter((patient) => `${patient.name} ${patient.species} ${patient.breed ?? ''} ${patient.client_name}`.toLowerCase().includes(query));
+    return this.patients.filter((patient) => {
+      const matchesSearch = `${patient.name} ${patient.species} ${patient.breed ?? ''} ${patient.client_name}`.toLowerCase().includes(query);
+      const matchesSpecies = this.speciesFilter === 'All' || patient.species === this.speciesFilter;
+      const matchesStatus = this.statusFilter === 'All' || patient.status === this.statusFilter.toLowerCase();
+      return matchesSearch && matchesSpecies && matchesStatus;
+    });
   }
 
   selectPatient(patient: PatientRecord): void {
@@ -95,7 +121,24 @@ export class Emr {
     }, error: () => { this.attachmentMessage = 'Unable to download attachment.'; } });
   }
 
+  logout(): void {
+    this.router.navigate(['/login']);
+  }
+
   constructor() {
-    this.api.patients().subscribe({ next: (response) => { this.patientCount = response.data.patient_count; this.patients = response.data.patients; this.loading = false; }, error: () => { this.error = 'Unable to load patient records.'; this.loading = false; } });
+    this.api.patients().pipe(
+      timeout(10000),
+      finalize(() => { this.loading.set(false); }),
+    ).subscribe({
+      next: (response) => {
+        this.patientCount = Number(response.data?.patient_count ?? 0);
+        this.patients = response.data?.patients ?? [];
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.error = 'Unable to load patient records. Please refresh and try again.';
+      },
+    });
   }
 }

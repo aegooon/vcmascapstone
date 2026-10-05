@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { DomainApiService, InventoryTransactionRecord, PatientRecord } from '../../core/api/domain-api.service';
+import { DomainApiService } from '../../core/api/domain-api.service';
 
 export interface InventoryItem {
   id: number;
@@ -50,15 +50,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
   ];
 
   categories: string[] = ['All', 'Drugs', 'Medical Items', 'Laboratory Equipment', 'Pet Food'];
-  transactions: InventoryTransactionRecord[] = [];
-  transactionItemId = '';
-  transactionType: 'purchase' | 'patient_usage' | 'return' | 'wastage' | 'correction' = 'purchase';
-  transactionQuantity = 1;
-  transactionReason = '';
-  transactionPatientId = '';
-  patients: PatientRecord[] = [];
-  transactionMessage = '';
-
   private readonly api = inject(DomainApiService);
 
   constructor(private router: Router) {}
@@ -67,8 +58,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.api.inventory().subscribe({ next: ({ data }) => {
       this.items = data.items.map((item, index) => ({ id: index + 1, serverId: item.id, name: item.name, category: this.displayCategory(item.category), stock: Number(item.quantity_on_hand), unit: item.unit, price: Number(item.client_price), lastUpdated: item.updated_at.slice(0, 10) }));
     } });
-    this.api.inventoryTransactions().subscribe({ next: ({ data }) => { this.transactions = data.transactions; } });
-    this.api.patients().subscribe({ next: ({ data }) => { this.patients = data.patients; } });
     this.timeInterval = setInterval(() => {
       this.currentTime = new Date();
     }, 60000);
@@ -171,19 +160,6 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private apiCategory(category: InventoryItem['category']): string {
     const values: Record<InventoryItem['category'], string> = { Drugs: 'drugs', 'Medical Items': 'medical_items', 'Laboratory Equipment': 'laboratory_equipment', 'Pet Food': 'pet_food' };
     return values[category];
-  }
-
-  recordTransaction(): void {
-    if (!this.transactionItemId || !this.transactionReason.trim() || this.transactionQuantity <= 0) return;
-    this.api.recordInventoryTransaction({ inventory_item_id: this.transactionItemId, type: this.transactionType, quantity: this.transactionQuantity, reason: this.transactionReason, client_request_id: `inventory-${Date.now()}-${Math.random().toString(36).slice(2)}`, patient_id: this.transactionPatientId || undefined }).subscribe({
-      next: () => { this.transactionMessage = 'Inventory transaction recorded.'; this.transactionReason = ''; this.transactionQuantity = 1; this.transactionPatientId = ''; this.refreshInventory(); },
-      error: () => { this.transactionMessage = 'Unable to record this inventory transaction.'; },
-    });
-  }
-
-  private refreshInventory(): void {
-    this.api.inventory().subscribe(({ data }) => { this.items = data.items.map((item, index) => ({ id: index + 1, serverId: item.id, name: item.name, category: this.displayCategory(item.category), stock: Number(item.quantity_on_hand), unit: item.unit, price: Number(item.client_price), lastUpdated: item.updated_at.slice(0, 10) })); });
-    this.api.inventoryTransactions().subscribe(({ data }) => { this.transactions = data.transactions; });
   }
 
   logout(): void {

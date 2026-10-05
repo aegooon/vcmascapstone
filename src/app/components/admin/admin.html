@@ -81,17 +81,6 @@
           <p class="text-slate-500 mt-2 text-sm max-w-md">Manage staff roles, service catalogs, inventory levels, and system configuration.</p>
         </div>
 
-        <div class="flex flex-wrap gap-3">
-          <button (click)="onExportReport()" class="flex items-center px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-medium text-sm cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
-            Export Report
-          </button>
-          <button (click)="onAddNewUser()" class="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-medium text-sm rounded-xl transition-colors shadow-sm flex items-center gap-2 cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-            <span>Add New User</span>
-          </button>
-        </div>
-        <p *ngIf="actionMessage" class="w-full text-sm text-blue-800 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2" role="status">{{ actionMessage }}</p>
       </div>
 
       <!-- Stat Cards Grid -->
@@ -135,6 +124,26 @@
         </div>
 
       </div>
+
+      <section class="mb-8 rounded-2xl border border-violet-100 bg-violet-50/60 p-6" aria-labelledby="appointment-requests-heading">
+        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div><p class="text-xs font-bold uppercase tracking-wider text-violet-700">Needs review</p><h2 id="appointment-requests-heading" class="mt-1 text-lg font-bold text-violet-950">Appointment requests</h2><p class="mt-1 text-sm text-slate-600">Review client requests before confirming them on the clinic schedule.</p></div>
+          <a routerLink="/scheduling" class="text-sm font-semibold text-violet-800 hover:text-violet-950">Open scheduling</a>
+        </div>
+        @if (requestActionMessage()) { <p class="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">{{ requestActionMessage() }}</p> }
+        @if (pendingRequests().length > 0) {
+          <div class="mt-5 space-y-3">
+            @for (appointment of pendingRequests(); track appointment.id) {
+              <article class="flex flex-col justify-between gap-4 rounded-xl border border-violet-100 bg-white p-4 sm:flex-row sm:items-center">
+                <div><p class="font-semibold text-slate-900">{{ appointment.pet_name }} <span aria-hidden="true">·</span> {{ appointment.reason }}</p><p class="mt-1 text-sm text-slate-600">{{ appointment.owner_name }} <span aria-hidden="true">·</span> {{ appointment.appointment_date }} at {{ appointment.appointment_time }} <span aria-hidden="true">·</span> {{ appointment.room }}</p></div>
+                <div class="flex shrink-0 gap-2"><button type="button" (click)="declineAppointment(appointment)" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Decline</button><button type="button" (click)="approveAppointment(appointment)" class="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">Approve</button></div>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="mt-5 rounded-xl border border-violet-100 bg-white px-4 py-4 text-sm text-slate-600">No appointment requests are waiting for approval.</p>
+        }
+      </section>
 
       <!-- Main Grid: Staff/Settings, Pricing/Inventory -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -218,8 +227,8 @@
         </div>
       </div>
 
-      <!-- Service Pricing + Inventory Alerts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- Service Pricing -->
+      <div class="mb-6">
 
         <!-- Service Pricing -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
@@ -245,100 +254,6 @@
           </button>
         </div>
 
-        <!-- Inventory Alerts -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-          <h2 class="text-base font-bold text-slate-900 mb-6">Inventory Alerts</h2>
-
-          <div class="space-y-4">
-            <div *ngFor="let item of inventoryAlerts">
-              <div class="flex items-start justify-between mb-2">
-                <div class="flex items-start gap-2.5">
-                  <div
-                    class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                    [ngClass]="item.severity === 'critical' ? 'bg-red-50 text-red-600' : 'bg-amber-100 text-amber-600'"
-                  >
-                    <svg *ngIf="item.severity === 'critical'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m0 3.75h.007M12 21a9 9 0 100-18 9 9 0 000 18z" /></svg>
-                    <svg *ngIf="item.severity === 'low'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.29 3.86L1.82 18a1.5 1.5 0 001.3 2.25h17.76a1.5 1.5 0 001.3-2.25L13.71 3.86a1.5 1.5 0 00-2.42 0z" /></svg>
-                  </div>
-                  <div>
-                    <p class="text-sm font-bold text-slate-900">{{ item.name }}</p>
-                    <p class="text-xs text-slate-500 mt-0.5">{{ item.detail }}</p>
-                  </div>
-                </div>
-                <span
-                  class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide"
-                  [ngClass]="item.severity === 'critical' ? 'bg-red-50 text-red-600' : 'bg-amber-100 text-amber-600'"
-                >
-                  {{ item.severity }}
-                </span>
-              </div>
-
-              <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  class="h-full rounded-full"
-                  [ngClass]="item.severity === 'critical' ? 'bg-red-500' : 'bg-amber-500'"
-                  [style.width.%]="stockPercent(item)"
-                ></div>
-              </div>
-            </div>
-          </div>
-
-          <button
-            (click)="onCreatePurchaseOrder(inventoryAlerts[0])"
-            class="w-full mt-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors cursor-pointer"
-          >
-            Create Purchase Order
-          </button>
-        </div>
-      </div>
-
-      <!-- Patient Volume + System Audit Log -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <!-- Patient Volume -->
-        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="text-base font-bold text-slate-900">Patient Volume</h2>
-            <button class="flex items-center gap-1 px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-200 cursor-pointer">
-              Last 30 Days
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-            </button>
-          </div>
-
-          <div class="flex items-end justify-between gap-3 h-44 px-2">
-            <div *ngFor="let bar of patientVolume" class="flex-1 flex flex-col items-center gap-2">
-              <div
-                class="w-full max-w-10 rounded-t-lg bg-blue-700"
-                [style.height.%]="bar.value"
-                [style.opacity]="0.5 + (bar.value / 100) * 0.5"
-              ></div>
-              <span class="text-[11px] font-semibold text-slate-400">{{ bar.day }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- System Audit Log -->
-        <div class="bg-slate-100 rounded-2xl border border-slate-200 p-6">
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="text-base font-bold text-slate-900">System Audit Log</h2>
-          </div>
-
-          <div class="relative pl-3 space-y-6 before:absolute before:inset-y-0 before:left-5 before:w-0.5 before:bg-slate-200">
-            <div *ngFor="let entry of auditLog" class="relative pl-8">
-              <div class="absolute -left-2.75 top-1 w-6 h-6 rounded-full {{ entry.bgColor }} {{ entry.iconColor }} border-4 border-slate-100 flex items-center justify-center z-10">
-                <div class="w-1.5 h-1.5 rounded-full bg-current"></div>
-              </div>
-              <p class="text-sm text-slate-800 font-medium leading-snug">
-                {{ entry.text }}<span *ngIf="entry.highlight" class="font-bold text-blue-700">{{ entry.highlight }}</span>
-              </p>
-              <p class="text-xs text-slate-500 mt-1">{{ entry.time }}</p>
-            </div>
-          </div>
-
-          <button class="w-full mt-8 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
-            View Full Log
-          </button>
-        </div>
       </div>
 
     </div>

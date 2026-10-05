@@ -21,7 +21,7 @@ INSERT IGNORE INTO users
   (id, role_id, email, password_hash, full_name, phone, status)
 SELECT '00000000-0000-4000-8000-000000000001', id,
   'admin@example.test', '$2y$10$yCgknzFQYcgZHOLHwSDhM.4VLoI1gbbAVpa4piHenO.F5iKhV409W',
-  'Demo Administrator', '09000000001', 'active'
+  'Dr. Judit Maesa', '09000000001', 'active'
 FROM roles WHERE code = 'administrator';
 
 INSERT IGNORE INTO users
@@ -42,14 +42,14 @@ INSERT IGNORE INTO users
   (id, role_id, email, password_hash, full_name, phone, status)
 SELECT '00000000-0000-4000-8000-000000000004', id,
   'client@example.test', '$2y$10$yCgknzFQYcgZHOLHwSDhM.4VLoI1gbbAVpa4piHenO.F5iKhV409W',
-  'Demo Pet Owner', '09000000004', 'active'
+  'Demo Pet Owner', NULL, 'active'
 FROM roles WHERE code = 'client';
 
 INSERT IGNORE INTO clients
   (id, user_id, full_name, email, phone, address)
 VALUES
   ('10000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000004',
-   'Demo Pet Owner', 'client@example.test', '09000000004', 'Fictional Demo Address');
+   'Demo Pet Owner', 'client@example.test', NULL, NULL);
 
 INSERT IGNORE INTO services (id, code, name, description, category, price, tax_rate, active) VALUES
   ('20000000-0000-4000-8000-000000000001', 'consultation', 'Consultation', 'General veterinary consultation.', 'clinical', 500.00, 0.00, TRUE),

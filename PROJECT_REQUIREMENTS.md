@@ -5,7 +5,7 @@
 **Version:** 1.0  
 **Status:** Baseline for all future revisions  
 
-**Implementation progress:** P0-01 through P0-05 are complete. P0-06 and P0-07 have the XAMPP PHP session API, Angular authentication service, session restoration, and route guards. P0-08 has typed API services and credential handling. P0-09 supports database-backed inventory item creation, editing, soft deletion, stock transactions, history, stock-in, patient usage, returns, wastage, and corrections. P0-10 and P0-11 have server-calculated invoices, payments, voids, refunds, row locking, negative-stock protection, idempotency, and billable patient-usage invoice lines. P0-12 loads and records vaccinations, laboratory results, medications, clinical visits, binary attachments stored outside the public web root, and audit history for selected patients. Scheduling and the P1-02 client landing page are implemented. Static release gates (PHP lint, Angular application/spec type checks, Angular compiler checks, and production build) pass; live XAMPP database, browser accessibility, responsive viewport, and end-to-end reconciliation checks remain release-test activities.
+**Implementation progress:** P0-01 through P0-05 are complete. P0-06 and P0-07 have the XAMPP PHP session API, Angular authentication service, session restoration, and route guards. P0-08 has typed API services and credential handling. P0-09 supports database-backed inventory item creation, editing, and soft deletion. P0-10 has server-calculated invoices, payments, voids, and refunds. P0-12 loads and records vaccinations, laboratory results, medications, clinical visits, binary attachments stored outside the public web root, and audit history for selected patients. Scheduling and the P1-02 client landing page are implemented. Static release gates (PHP lint, Angular application/spec type checks, Angular compiler checks, and production build) pass; live XAMPP database, browser accessibility, and responsive viewport checks remain release-test activities.
 **Date:** 2026-10-04
 
 ## 1. Purpose
@@ -52,7 +52,7 @@ Can view and update assigned patient EMR records, view appointments, record diag
 
 ### 4.3 Receptionist or clinic staff
 
-Can register clients and pets, schedule appointments, check patients in, manage permitted inventory transactions, create invoices, record payments, and view operational reports.
+Can register clients and pets, schedule appointments, check patients in, manage permitted inventory items, create invoices, record payments, and view operational reports.
 
 ### 4.4 Client or pet owner
 
@@ -95,18 +95,18 @@ The following revisions are release gates. They must be completed before lower-p
 ### P0-3: Shared domain data and API layer
 
 - Replace component-local mock arrays with typed services and a shared state layer.
-- Add typed models for users, clients, pets, appointments, patient records, inventory items, inventory transactions, invoices, invoice lines, payments, and audit entries.
+- Add typed models for users, clients, pets, appointments, patient records, inventory items, invoices, invoice lines, payments, and audit entries.
 - The backend/API is part of the required implementation. It must provide authenticated endpoints, server-side authorization, persistence, validation, transaction handling, and audit logging for these models.
 - The client must consume the API through typed Angular services; feature components must not treat hard-coded arrays or browser storage as the source of truth.
 - Centralize loading, error, empty, and retry states.
 - Keep API errors out of `console.log`; show safe, actionable UI feedback.
 - Make updates optimistic only when rollback is defined; otherwise update state after the server confirms the transaction.
 
-**Acceptance criteria:** A change made on one page is visible on other authorized pages after the server confirms it. Refreshing the page does not erase persisted records. Unauthorized API requests are rejected server-side. Stock and billing changes are committed atomically and leave an audit record.
+**Acceptance criteria:** A change made on one page is visible on other authorized pages after the server confirms it. Refreshing the page does not erase persisted records. Unauthorized API requests are rejected server-side. Persisted changes leave an audit record.
 
-### P0-4: Inventory and Billing integration
+### P0-4: Inventory and Billing
 
-Inventory and billing must use a common transaction model. The inventory page and billing page must not maintain independent totals.
+Inventory and billing must use persisted, server-confirmed data. The inventory page and billing page must not rely on local mock records.
 
 #### Inventory requirements
 
@@ -121,16 +121,7 @@ Each inventory item must have:
 - Active/inactive status
 - Created and updated timestamps
 
-Every quantity change must create an immutable inventory transaction with:
-
-- Item identifier
-- Quantity delta and resulting balance
-- Transaction type: `purchase`, `patient-usage`, `return`, `wastage`, or `correction`
-- Unit cost or charge price as applicable
-- Linked patient, appointment, invoice, or purchase reference when applicable
-- User, timestamp, reason, and audit metadata
-
-The system must reject negative resulting stock unless an authorized administrator records a correction. Quantity, cost, and price inputs must be validated as finite non-negative values.
+Quantity, cost, and price inputs must be validated as finite non-negative values, and inventory item changes must be authorized and auditable.
 
 #### Billing requirements
 
@@ -139,19 +130,7 @@ Billing must show:
 - Invoice number, client, patient, appointment, status, dates, subtotal, tax, discount, total, amount paid, and balance due
 - Itemized service and inventory lines with quantity, unit price, and line total
 - Payment status: draft, issued, partially paid, paid, void, or refunded
-- A visible link to the inventory transaction and EMR/appointment context when a charge came from patient care
-
-#### Required synchronization behavior
-
-1. **Inventory addition / stock-in:** When inventory is increased because the clinic purchased or received stock, the system records an inventory purchase transaction. Billing must show the corresponding clinic expense or payable amount in the inventory/purchases view. This is an internal financial amount and must not automatically charge a client.
-2. **Inventory reduction / patient usage:** When stock is reduced for a patient visit, the system records a patient-usage transaction and creates or updates a billable invoice line using the item's client charge price. The invoice must show quantity, unit price, and total amount.
-3. **Non-billable reduction:** Wastage, expiry, correction, and other non-billable reductions must affect stock and audit history but must not create a client charge.
-4. **Returns and reversals:** A returned or reversed transaction must create a compensating transaction and update the linked invoice or expense record without deleting the original audit entry.
-5. **Atomicity:** The stock change and its linked financial change must succeed together or be rolled back together. The UI must show a clear failure state if either side cannot be saved.
-6. **Idempotency:** Retrying a request must not duplicate stock movement, invoice lines, expenses, or payments.
-7. **Reconciliation:** Administrators must be able to compare inventory movement totals with billing and purchase totals for a selected date range.
-
-**Acceptance criteria:** Adding stock updates quantity and the internal purchase amount. Reducing stock for a patient updates quantity and the patient's invoice. Wastage does not charge a client. Refreshing inventory and billing shows the same server-confirmed transaction. Every change can be traced to a user and source record.
+- **Acceptance criteria:** Inventory item changes persist after refresh, display consistent quantities and prices across authorized pages, validate inputs, and can be traced to the responsible user.
 
 ### P0-5: EMR and patient records
 
@@ -273,7 +252,7 @@ The page must also show the following contact information in a prominent contact
 
 - Create invoices from services and billable inventory usage.
 - Display inventory purchase expenses separately from client charges.
-- Support payment recording, partial payment, void, refund, and reconciliation workflows.
+- Support payment recording, partial payment, void, and refund workflows.
 - Prevent edits to finalized invoices except through controlled reversal or adjustment records.
 
 ## 7. Data and business rules
@@ -306,7 +285,7 @@ Responsiveness applies to every public page and every authenticated module, incl
 - Do not encode important information only through hover, fixed positioning, or color.
 - Verify responsive behavior after every component or style change, including loading, error, empty, and populated states.
 
-**Responsive acceptance criteria:** Every supported route remains readable and operable at the required viewport widths. No primary action, form field, table record, modal control, contact detail, EMR record, inventory transaction, or invoice total is clipped or unreachable. The responsive check passes keyboard navigation and WCAG 2.2 AA review.
+**Responsive acceptance criteria:** Every supported route remains readable and operable at the required viewport widths. No primary action, form field, table record, modal control, contact detail, EMR record, inventory item, or invoice total is clipped or unreachable. The responsive check passes keyboard navigation and WCAG 2.2 AA review.
 
 - Every form control has a programmatic label, stable `id`, validation message, and error association.
 - Every icon-only button has an accessible name and an appropriate pressed/expanded state.
@@ -337,8 +316,8 @@ Before a revision is accepted:
 1. `npx tsc -p tsconfig.app.json --noEmit` passes.
 2. `npx tsc -p tsconfig.spec.json --noEmit` passes.
 3. The Angular production build passes.
-4. Unit tests cover authentication, route guards, inventory transactions, billing calculations, EMR count/search/edit behavior, and key form validation.
-5. Integration tests verify inventory-to-billing synchronization, reversal, retry/idempotency, and authorization boundaries.
+4. Unit tests cover authentication, route guards, inventory item management, billing calculations, EMR count/search/edit behavior, and key form validation.
+5. Integration tests verify billing persistence and authorization boundaries.
 6. Accessibility checks pass for all new or changed pages.
 7. Formatting and lint checks pass.
 8. No unresolved `TODO`, placeholder action, mock success path, or broken route remains in a released feature.
@@ -351,8 +330,8 @@ The implementation must follow this order unless a later dependency is documente
 2. Implement authentication, role model, guards, and logout.
 3. Add shared typed services and replace local mock state.
 4. Implement the EMR patient-record page and patient data model.
-5. Implement inventory transaction history and validation.
-6. Implement Billing and the atomic inventory-to-billing integration.
+5. Implement inventory item management and validation.
+6. Implement Billing and its persisted invoice workflows.
 7. Complete scheduling, client portal, administration, reports, and remaining workflows.
 8. Apply Angular standards, accessibility remediation, testing, and visual polish.
 
@@ -387,11 +366,7 @@ These are tracked by the P0 and P1 requirements above and must be resolved befor
 
 ## 14. Decisions to preserve during implementation
 
-- Inventory additions represent clinic stock receipts or purchases and appear as internal expense/payable amounts.
-- Inventory reductions become client charges only when the transaction type is patient usage or another explicitly billable type.
-- Wastage, expiry, correction, and similar adjustments affect stock and audit history without charging a client.
-- Inventory, billing, and EMR records are linked by stable transaction, patient, appointment, and invoice identifiers.
-- The server is the authority for stock balances, invoice totals, authorization, and audit history.
+- The server is the authority for inventory quantities, invoice totals, authorization, and audit history.
 
 ## 15. Deployment and data readiness
 
@@ -448,16 +423,16 @@ The tasks below turn the requirements into an execution plan. Tasks in a priorit
 | ID | Task | Dependencies | Required deliverable and completion check |
 |---|---|---|---|
 | P0-01 | Confirm deployment stack | None | **Decision recorded:** use a PHP REST API plus MySQL inside XAMPP. Document local and production environment variables. |
-| P0-02 | Establish the backend contract | P0-01 | Define typed request/response models and endpoint contracts for authentication, users, clients, pets, appointments, EMR, inventory, inventory transactions, invoices, invoice lines, payments, and audit events in [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md). |
-| P0-03 | Create the database schema and migrations | P0-02 | Create normalized MySQL tables, keys, constraints, indexes, timestamps, audit fields, and migration/rollback scripts. The schema must support the inventory-to-billing links defined in P0-11. |
+| P0-02 | Establish the backend contract | P0-01 | Define typed request/response models and endpoint contracts for authentication, users, clients, pets, appointments, EMR, inventory, invoices, invoice lines, payments, and audit events in [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md). |
+| P0-03 | Create the database schema and migrations | P0-02 | Create normalized MySQL tables, keys, constraints, indexes, timestamps, audit fields, and migration/rollback scripts. |
 | P0-04 | Add anonymized seed data | P0-03 | Provide safe development records for staff, clients, pets, appointments, EMR entries, services, inventory, invoices, and payments. No real clinic data may be committed. |
 | P0-05 | Repair route definitions and navigation | None | Register every visible destination, choose one client route scheme, add Billing and EMR routes, remove broken `href="#"` actions, and verify direct navigation and refresh. |
 | P0-06 | Implement authentication | P0-02, P0-03 | Add staff and client login, registration, logout, session expiry, password handling, server errors, loading states, and safe session storage. |
 | P0-07 | Implement authorization and route guards | P0-06 | Add server-side and client-side role checks for administrator, veterinarian, staff, and client areas. Verify that direct URLs cannot bypass permissions. |
 | P0-08 | Build the shared Angular data layer | P0-02, P0-06 | Add typed API services, shared reactive state, loading/error/empty states, and environment-based API configuration. Remove feature reliance on local mock arrays. |
-| P0-09 | Implement inventory transactions | P0-03, P0-08 | Add inventory item validation, stock-in, patient usage, return, wastage, correction, reorder levels, transaction history, authorization, and audit entries. Prevent unauthorized negative stock. |
-| P0-10 | Implement Billing | P0-03, P0-08 | Add invoices, invoice lines, taxes, discounts, payment status, payments, voids, refunds, and server-calculated totals. Separate clinic purchase expenses from client charges. |
-| P0-11 | Connect Inventory and Billing atomically | P0-09, P0-10 | Stock additions create internal expense/payable records; billable patient usage creates invoice lines; wastage and corrections do not charge clients. Retries are idempotent and failures roll back both sides. |
+| P0-09 | Implement inventory item management | P0-03, P0-08 | Add inventory item validation, creation, editing, soft deletion, categories, quantities, prices, reorder levels, authorization, and audit entries. |
+| P0-10 | Implement Billing | P0-03, P0-08 | Add invoices, invoice lines, taxes, discounts, payment status, payments, voids, refunds, and server-calculated totals. |
+| P0-11 | Connect Inventory and Billing records | P0-09, P0-10 | Ensure inventory and billing pages use server-confirmed records and preserve authorized data across refreshes. |
 | P0-12 | Implement the EMR patient-record page | P0-03, P0-07, P0-08 | Show patient count, search/filter, patient details, clinical history, diagnoses, treatments, vaccinations, laboratory records, medications, attachments, authorship, and audit history. Link visits to appointments, inventory usage, and billing. |
 | P0-13 | Apply project-wide responsive layout | P0-05, P0-08 | Make every route usable at 320px, 375px, 768px, 1024px, and 1440px. Remove horizontal overflow, reflow cards/tables, keep dialogs within the viewport, and verify keyboard/touch operation. |
 | P0-14 | Establish accessibility baseline | P0-05, P0-13 | Add labels, accessible names, landmarks, dialog semantics, focus handling, visible focus styles, live errors, contrast compliance, and keyboard operation. Run axe checks on every P0 page. |
@@ -474,9 +449,9 @@ The tasks below turn the requirements into an execution plan. Tasks in a priorit
 | P1-03 | Complete the client portal | P0-06, P0-07, P0-08, P1-01 | Complete client profile, pet management, appointments, notifications, invoices, and allowed EMR summaries with client data isolation. |
 | P1-04 | Complete staff dashboard | P0-08, P1-01, P0-12 | Replace hard-coded statistics and activities with server-backed data and working appointment/patient actions. |
 | P1-05 | Complete administration | P0-06, P0-07, P0-08 | Implement user/role management, clinic settings, operating hours, service catalog, permissions, purchase orders, reports, and audit-log views. |
-| P1-06 | Complete payment and reconciliation workflows | P0-10, P0-11 | Record full and partial payments, refunds, voids, balances, payment methods, and inventory/billing reconciliation reports. |
+| P1-06 | Complete payment workflows | P0-10, P0-11 | Record full and partial payments, refunds, voids, balances, and payment methods. |
 | P1-07 | Implement controlled clinic-data import | P0-03, P0-06, P0-07 | Add authorized import for approved clinic data with validation, duplicate detection, preview, audit record, backup, and rollback/recovery procedure. |
-| P1-08 | Add module-level tests | P1-01 through P1-07 | Cover scheduling rules, client isolation, EMR count/search/edit, inventory adjustments, billing totals, payment states, and data import behavior. |
+| P1-08 | Add module-level tests | P1-01 through P1-07 | Cover scheduling rules, client isolation, EMR count/search/edit, inventory item management, billing totals, payment states, and data import behavior. |
 
 **P1 exit criteria:** The clinic can operate its normal appointment, patient, EMR, inventory, billing, payment, administration, and client-portal workflows using persisted data.
 

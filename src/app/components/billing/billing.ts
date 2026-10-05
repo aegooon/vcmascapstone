@@ -1,15 +1,20 @@
 import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { ClientRecord, DomainApiService, InvoiceRecord, PaymentRecord, PetLookupRecord } from '../../core/api/domain-api.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
   selector: 'app-billing',
   styleUrl: './billing.css',
   templateUrl: './billing.html',
 })
 export class Billing {
   private readonly api = inject(DomainApiService);
+  private readonly router = inject(Router);
+  readonly auth = inject(AuthService);
   invoices: InvoiceRecord[] = [];
   loading = true;
   error = '';
@@ -27,6 +32,27 @@ export class Billing {
   invoiceDescription = '';
   invoiceQuantity = 1;
   invoiceUnitPrice = 0;
+
+  get totalOutstanding(): number {
+    return this.invoices.reduce((sum, invoice) => sum + Number(invoice.balance_due), 0);
+  }
+
+  get paidInvoiceCount(): number {
+    return this.invoices.filter((invoice) => invoice.status === 'paid').length;
+  }
+
+  get openInvoiceCount(): number {
+    return this.invoices.filter((invoice) => invoice.status !== 'paid' && invoice.status !== 'void').length;
+  }
+
+  get currentUserName(): string {
+    return this.auth.user()?.full_name ?? 'Clinic user';
+  }
+
+  get currentUserRole(): string {
+    const role = this.auth.user()?.role;
+    return role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Authorized staff';
+  }
 
   constructor() {
     this.api.invoices().subscribe({ next: (response) => { this.invoices = response.data.invoices; this.loading = false; }, error: () => { this.error = 'Unable to load invoices.'; this.loading = false; } });
@@ -69,5 +95,9 @@ export class Billing {
 
   voidInvoice(invoice: InvoiceRecord): void {
     this.api.voidInvoice(invoice.id).subscribe({ next: () => { invoice.status = 'void'; invoice.balance_due = '0.00'; this.paymentMessage = 'Invoice voided successfully.'; }, error: () => { this.paymentMessage = 'Unable to void invoice.'; } });
+  }
+
+  logout(): void {
+    this.router.navigate(['/login']);
   }
 }

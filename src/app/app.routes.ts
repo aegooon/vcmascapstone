@@ -1,14 +1,14 @@
 import { Routes } from '@angular/router';
-import { authenticatedGuard, clientGuard } from './core/auth/auth.guards';
+import { clientGuard, staffGuard } from './core/auth/auth.guards';
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: 'login', loadComponent: () => import('./components/login/login').then(({ LoginComponent }) => LoginComponent) },
-  { path: 'dashboard', canActivate: [authenticatedGuard], loadComponent: () => import('./components/dashboard/dashboard').then(({ DashboardComponent }) => DashboardComponent) },
-  { path: 'admin', canActivate: [authenticatedGuard], loadComponent: () => import('./components/admin/admin').then(({ AdminComponent }) => AdminComponent) },
-  { path: 'inventory', canActivate: [authenticatedGuard], loadComponent: () => import('./components/inventory/inventory').then(({ InventoryComponent }) => InventoryComponent) },
-  { path: 'billing', canActivate: [authenticatedGuard], loadComponent: () => import('./components/billing/billing').then(({ Billing }) => Billing) },
-  { path: 'emr', canActivate: [authenticatedGuard], loadComponent: () => import('./components/emr/emr').then(({ Emr }) => Emr) },
-  { path: 'scheduling', canActivate: [authenticatedGuard], loadComponent: () => import('./components/scheduling/scheduling').then(({ SchedulingComponent }) => SchedulingComponent) },
+  { path: 'dashboard', canActivate: [staffGuard], loadComponent: () => import('./components/dashboard/dashboard').then(({ DashboardComponent }) => DashboardComponent) },
+  { path: 'admin', canActivate: [staffGuard], loadComponent: () => import('./components/admin/admin').then(({ AdminComponent }) => AdminComponent) },
+  { path: 'inventory', canActivate: [staffGuard], loadComponent: () => import('./components/inventory/inventory').then(({ InventoryComponent }) => InventoryComponent) },
+  { path: 'billing', canActivate: [staffGuard], loadComponent: () => import('./components/billing/billing').then(({ Billing }) => Billing) },
+  { path: 'emr', canActivate: [staffGuard], loadComponent: () => import('./components/emr/emr').then(({ Emr }) => Emr) },
+  { path: 'scheduling', canActivate: [staffGuard], loadComponent: () => import('./components/scheduling/scheduling').then(({ SchedulingComponent }) => SchedulingComponent) },
   {
     path: 'client',
     children: [

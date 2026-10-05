@@ -137,6 +137,7 @@
             [(ngModel)]="selectedFilter"
             class="border border-transparent bg-slate-100 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:bg-white focus:border-blue-600 transition-all">
             <option value="All">All Statuses</option>
+            <option value="Requested">Requested</option>
             <option value="Scheduled">Scheduled</option>
             <option value="Checked In">Checked In</option>
             <option value="In Progress">In Progress</option>
@@ -188,6 +189,12 @@
                   </span>
                 </td>
                 <td class="py-3.5 px-6 text-right space-x-2 whitespace-nowrap">
+                  <button
+                    *ngIf="item.status === 'Requested'"
+                    (click)="approveSchedule(item)"
+                    class="text-emerald-700 hover:text-emerald-900 font-semibold text-xs transition-colors cursor-pointer">
+                    Approve
+                  </button>
                   <button
                     (click)="openEditModal(item)"
                     class="text-blue-700 hover:text-blue-900 font-semibold text-xs transition-colors cursor-pointer">

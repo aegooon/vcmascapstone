@@ -1,6 +1,7 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { AppointmentRecord, DomainApiService } from '../../core/api/domain-api.service';
 
 interface StaffMember {
   name: string;
@@ -16,27 +17,6 @@ interface ServicePriceItem {
   price: string;
 }
 
-interface InventoryAlertItem {
-  name: string;
-  detail: string;
-  current: number;
-  reorderAt: number;
-  severity: 'critical' | 'low';
-}
-
-interface AuditLogEntry {
-  text: string;
-  highlight?: string;
-  time: string;
-  iconColor: string;
-  bgColor: string;
-}
-
-interface PatientVolumeBar {
-  day: string;
-  value: number; // 0-100, percentage of chart height
-}
-
 @Component({
   selector: 'app-admin',
   standalone: true,
@@ -45,11 +25,13 @@ interface PatientVolumeBar {
 })
 export class AdminComponent implements OnInit, OnDestroy {
 
+  private readonly api = inject(DomainApiService);
+  readonly pendingRequests = signal<AppointmentRecord[]>([]);
+  readonly requestActionMessage = signal('');
+
   // Real-time clock, same pattern as DashboardComponent
   private timeInterval: any;
   currentTime: Date = new Date();
-  actionMessage = '';
-
   // Header stats
   stats = {
     totalPatients: { value: '49', trend: '+ 12%' },
@@ -79,32 +61,10 @@ export class AdminComponent implements OnInit, OnDestroy {
     { name: 'Dental Cleaning', category: 'Surgery/Anesthesia', price: '₱350.00' }
   ];
 
-  // Inventory Alerts
-  inventoryAlerts: InventoryAlertItem[] = [
-    { name: 'Rabies Vaccine (1yr)', detail: 'Current: 12 vials · Reorder: 50', current: 12, reorderAt: 50, severity: 'critical' },
-    { name: 'Gauze Pads 4x4', detail: 'Current: 2 boxes · Reorder: 10', current: 2, reorderAt: 10, severity: 'low' }
-  ];
-
-  // Patient Volume chart placeholder data
-  patientVolume: PatientVolumeBar[] = [
-    { day: 'MON', value: 40 },
-    { day: 'TUE', value: 58 },
-    { day: 'WED', value: 48 },
-    { day: 'THU', value: 82 },
-    { day: 'FRI', value: 65 },
-    { day: 'SAT', value: 92 }
-  ];
-
-  // System Audit Log, same shape/colors as dashboard's Recent Activity
-  auditLog: AuditLogEntry[] = [
-    { text: 'Dr. Judit Maesa updated service pricing for ', highlight: 'Dental Cleaning', time: 'Today, 10:42 AM', iconColor: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { text: 'Admin created new user account for Pedro Dela Cruz', time: 'Yesterday, 2:15 PM', iconColor: 'text-teal-600', bgColor: 'bg-teal-50' },
-    { text: 'System generated ', highlight: 'Low Inventory Alert', time: 'Yesterday, 8:00 AM', iconColor: 'text-amber-600', bgColor: 'bg-amber-50' }
-  ];
-
   constructor(private router: Router) {}
 
   ngOnInit() {
+    this.loadPendingRequests();
     this.timeInterval = setInterval(() => {
       this.currentTime = new Date();
     }, 60000);
@@ -116,23 +76,34 @@ export class AdminComponent implements OnInit, OnDestroy {
     }
   }
 
-  stockPercent(item: InventoryAlertItem): number {
-    return Math.min(100, Math.round((item.current / item.reorderAt) * 100));
-  }
-
   logout() {
     this.router.navigate(['/login']);
   }
 
-  onExportReport(): void {
-    this.actionMessage = 'Report export is queued for the selected reporting period.';
+  approveAppointment(appointment: AppointmentRecord): void {
+    this.api.updateAppointmentStatus(appointment.id, 'scheduled').subscribe({
+      next: () => {
+        this.pendingRequests.update((requests) => requests.filter((request) => request.id !== appointment.id));
+        this.requestActionMessage.set(`${appointment.pet_name}'s appointment has been approved.`);
+      },
+      error: () => this.requestActionMessage.set('Unable to approve this request. Sign in with a staff or administrator account.'),
+    });
   }
 
-  onAddNewUser(): void {
-    this.actionMessage = 'Open the user management workflow to add a staff account.';
+  declineAppointment(appointment: AppointmentRecord): void {
+    this.api.updateAppointmentStatus(appointment.id, 'cancelled', 'Declined by clinic').subscribe({
+      next: () => {
+        this.pendingRequests.update((requests) => requests.filter((request) => request.id !== appointment.id));
+        this.requestActionMessage.set(`${appointment.pet_name}'s appointment request was declined.`);
+      },
+      error: () => this.requestActionMessage.set('Unable to decline this request. Sign in with a staff or administrator account.'),
+    });
   }
 
-  onCreatePurchaseOrder(item: InventoryAlertItem): void {
-    this.actionMessage = `Purchase order draft created for ${item.name}.`;
+  private loadPendingRequests(): void {
+    this.api.appointments().subscribe({
+      next: ({ data }) => this.pendingRequests.set(data.appointments.filter((appointment) => appointment.status === 'requested')),
+    });
   }
+
 }

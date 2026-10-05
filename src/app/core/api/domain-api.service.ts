@@ -37,6 +37,7 @@ export interface PatientRecord {
   breed: string | null;
   client_name: string;
   last_visit: string | null;
+  status?: 'active' | 'inactive' | 'deceased';
 }
 export interface EmrVisitRecord { id: string; visited_at: string; clinical_notes: string; diagnosis: string | null; treatment_plan: string | null; follow_up_instructions: string | null; author_name: string; }
 export interface EmrStructuredRecords { vaccinations: Array<Record<string, string | null>>; laboratories: Array<Record<string, string | null>>; medications: Array<Record<string, string | null>>; attachments: Array<Record<string, string | null>>; audit: Array<Record<string, string | null>>; }
@@ -55,6 +56,9 @@ export interface AppointmentRecord {
 
 export interface ClientRecord { id: string; full_name: string; email: string; }
 export interface PetLookupRecord { id: string; client_id: string; name: string; species: string; breed: string | null; }
+export interface ClientNotification { id: string; type: string; message: string; read_at: string | null; created_at: string; }
+export interface ClientProfileRecord { id: string; full_name: string; email: string; phone: string | null; address: string | null; }
+export interface ClinicSettings { clinic_name: string; address: string; mobile_number: string; telephone_number: string; opening_time: string; closing_time: string; timezone: string; }
 
 @Injectable({ providedIn: 'root' })
 export class DomainApiService {
@@ -142,6 +146,26 @@ export class DomainApiService {
     return this.http.get<ApiEnvelope<{ appointments: AppointmentRecord[] }>>('/api/v1/appointments');
   }
 
+  notifications(): Observable<ApiEnvelope<{ notifications: ClientNotification[]; unread_count: number }>> {
+    return this.http.get<ApiEnvelope<{ notifications: ClientNotification[]; unread_count: number }>>('/api/v1/notifications');
+  }
+
+  profile(): Observable<ApiEnvelope<{ profile: ClientProfileRecord }>> {
+    return this.http.get<ApiEnvelope<{ profile: ClientProfileRecord }>>('/api/v1/profile');
+  }
+
+  updateProfile(payload: { full_name: string; phone: string; address: string }): Observable<ApiEnvelope<{ profile: ClientProfileRecord }>> {
+    return this.http.patch<ApiEnvelope<{ profile: ClientProfileRecord }>>('/api/v1/profile', payload);
+  }
+
+  clinic(): Observable<ApiEnvelope<{ clinic: ClinicSettings | null }>> {
+    return this.http.get<ApiEnvelope<{ clinic: ClinicSettings | null }>>('/api/v1/clinic');
+  }
+
+  markNotificationRead(id: string): Observable<ApiEnvelope<{ notification_id: string; read_at: string }>> {
+    return this.http.patch<ApiEnvelope<{ notification_id: string; read_at: string }>>(`/api/v1/notifications/${id}`, {});
+  }
+
   clients(): Observable<ApiEnvelope<{ clients: ClientRecord[] }>> {
     return this.http.get<ApiEnvelope<{ clients: ClientRecord[] }>>('/api/v1/clients');
   }
@@ -150,7 +174,7 @@ export class DomainApiService {
     return this.http.get<ApiEnvelope<{ pets: PetLookupRecord[] }>>('/api/v1/pets');
   }
 
-  createAppointment(payload: { client_id: string; pet_id: string; starts_at: string; ends_at: string; reason?: string; room?: string; veterinarian_id?: string; service_id?: string }): Observable<ApiEnvelope<{ appointment_id: string; status: string }>> {
+  createAppointment(payload: { client_id?: string; pet_id: string; starts_at: string; ends_at: string; reason?: string; room?: string; veterinarian_id?: string; service_id?: string }): Observable<ApiEnvelope<{ appointment_id: string; status: string }>> {
     return this.http.post<ApiEnvelope<{ appointment_id: string; status: string }>>('/api/v1/appointments', payload);
   }
 

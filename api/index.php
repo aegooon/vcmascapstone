@@ -134,7 +134,12 @@ try {
     }
 
     $activeUser = requireUser($pdo);
-    if ($activeUser['role'] === 'client' && !($method === 'GET' && $resource === 'invoices')) {
+    $clientCanAccess = ($method === 'GET' && in_array($resource, ['invoices', 'pets', 'appointments', 'notifications'], true))
+        || ($method === 'POST' && $resource === 'appointments')
+        || ($method === 'GET' && $resource === 'profile')
+        || ($method === 'PATCH' && in_array($resource, ['profile'], true))
+        || ($method === 'PATCH' && ($parts[count($parts) - 2] ?? '') === 'notifications');
+    if ($activeUser['role'] === 'client' && !$clientCanAccess) {
         respond(403, ['error' => ['code' => 'FORBIDDEN', 'message' => 'Staff access is required.']]);
     }
 
@@ -145,15 +150,77 @@ try {
     }
 
     if ($method === 'GET' && $resource === 'pets') {
-        requireUser($pdo);
-        $rows = $pdo->query('SELECT p.id, p.client_id, p.name, p.species, p.breed FROM pets p WHERE p.status = "active" ORDER BY p.name')->fetchAll();
+        if ($activeUser['role'] === 'client') {
+            $stmt = $pdo->prepare('SELECT p.id, p.client_id, p.name, p.species, p.breed FROM pets p JOIN clients c ON c.id = p.client_id WHERE c.user_id = :user AND p.status = "active" ORDER BY p.name');
+            $stmt->execute(['user' => $activeUser['id']]);
+            $rows = $stmt->fetchAll();
+        } else {
+            $rows = $pdo->query('SELECT p.id, p.client_id, p.name, p.species, p.breed FROM pets p WHERE p.status = "active" ORDER BY p.name')->fetchAll();
+        }
         respond(200, ['data' => ['pets' => $rows]]);
     }
 
     if ($method === 'GET' && $resource === 'appointments') {
-        requireUser($pdo);
-        $rows = $pdo->query('SELECT a.id, DATE_FORMAT(a.starts_at, "%Y-%m-%d") AS appointment_date, DATE_FORMAT(a.starts_at, "%h:%i %p") AS appointment_time, p.name AS pet_name, p.breed, c.full_name AS owner_name, COALESCE(a.reason, "General appointment") AS reason, COALESCE(a.room, "Unassigned") AS room, a.status FROM appointments a JOIN pets p ON p.id = a.pet_id JOIN clients c ON c.id = a.client_id ORDER BY a.starts_at')->fetchAll();
+        if ($activeUser['role'] === 'client') {
+            $stmt = $pdo->prepare('SELECT a.id, DATE_FORMAT(a.starts_at, "%Y-%m-%d") AS appointment_date, DATE_FORMAT(a.starts_at, "%h:%i %p") AS appointment_time, p.name AS pet_name, p.breed, c.full_name AS owner_name, COALESCE(a.reason, "General appointment") AS reason, COALESCE(a.room, "Unassigned") AS room, a.status FROM appointments a JOIN pets p ON p.id = a.pet_id JOIN clients c ON c.id = a.client_id WHERE c.user_id = :user ORDER BY a.starts_at');
+            $stmt->execute(['user' => $activeUser['id']]);
+            $rows = $stmt->fetchAll();
+        } else {
+            $rows = $pdo->query('SELECT a.id, DATE_FORMAT(a.starts_at, "%Y-%m-%d") AS appointment_date, DATE_FORMAT(a.starts_at, "%h:%i %p") AS appointment_time, p.name AS pet_name, p.breed, c.full_name AS owner_name, COALESCE(a.reason, "General appointment") AS reason, COALESCE(a.room, "Unassigned") AS room, a.status FROM appointments a JOIN pets p ON p.id = a.pet_id JOIN clients c ON c.id = a.client_id ORDER BY a.starts_at')->fetchAll();
+        }
         respond(200, ['data' => ['appointments' => $rows]]);
+    }
+
+    if ($method === 'GET' && $resource === 'notifications') {
+        if ($activeUser['role'] === 'client') {
+            $stmt = $pdo->prepare('SELECT n.id, n.type, n.message, n.read_at, n.created_at FROM client_notifications n JOIN clients c ON c.id = n.client_id WHERE c.user_id = :user ORDER BY n.created_at DESC');
+            $stmt->execute(['user' => $activeUser['id']]);
+            $rows = $stmt->fetchAll();
+        } else {
+            $rows = $pdo->query('SELECT id, type, message, read_at, created_at FROM client_notifications ORDER BY created_at DESC')->fetchAll();
+        }
+        $unread = count(array_filter($rows, static fn (array $row): bool => $row['read_at'] === null));
+        respond(200, ['data' => ['notifications' => $rows, 'unread_count' => $unread]]);
+    }
+
+    if ($resource === 'profile' && in_array($method, ['GET', 'PATCH'], true)) {
+        if ($activeUser['role'] !== 'client') respond(403, ['error' => ['code' => 'FORBIDDEN', 'message' => 'Client access is required.']]);
+        $clientStmt = $pdo->prepare('SELECT c.id, c.full_name, c.email, c.phone, c.address FROM clients c WHERE c.user_id = :user');
+        $clientStmt->execute(['user' => $activeUser['id']]);
+        $profile = $clientStmt->fetch();
+        if (!$profile) respond(404, ['error' => ['code' => 'PROFILE_NOT_FOUND', 'message' => 'Client profile was not found.']]);
+        if ($method === 'GET') respond(200, ['data' => ['profile' => $profile]]);
+
+        $data = input();
+        $fullName = trim((string) ($data['full_name'] ?? ''));
+        $phone = trim((string) ($data['phone'] ?? ''));
+        $address = trim((string) ($data['address'] ?? ''));
+        if ($fullName === '') respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'Full name is required.']]);
+        $pdo->beginTransaction();
+        $pdo->prepare('UPDATE users SET full_name = :name, phone = :phone WHERE id = :user')->execute(['name' => $fullName, 'phone' => $phone ?: null, 'user' => $activeUser['id']]);
+        $pdo->prepare('UPDATE clients SET full_name = :name, phone = :phone, address = :address WHERE id = :id')->execute(['name' => $fullName, 'phone' => $phone ?: null, 'address' => $address ?: null, 'id' => $profile['id']]);
+        $pdo->commit();
+        $clientStmt->execute(['user' => $activeUser['id']]);
+        respond(200, ['data' => ['profile' => $clientStmt->fetch()]]);
+    }
+
+    if ($method === 'PATCH' && ($parts[count($parts) - 2] ?? '') === 'notifications') {
+        $notificationId = $resource;
+        if ($activeUser['role'] === 'client') {
+            $notificationStmt = $pdo->prepare('SELECT n.id, n.read_at FROM client_notifications n JOIN clients c ON c.id = n.client_id WHERE n.id = :id AND c.user_id = :user');
+            $notificationStmt->execute(['id' => $notificationId, 'user' => $activeUser['id']]);
+        } else {
+            $notificationStmt = $pdo->prepare('SELECT id, read_at FROM client_notifications WHERE id = :id');
+            $notificationStmt->execute(['id' => $notificationId]);
+        }
+        $notification = $notificationStmt->fetch();
+        if (!$notification) respond(404, ['error' => ['code' => 'NOTIFICATION_NOT_FOUND', 'message' => 'Notification was not found.']]);
+        if ($notification['read_at'] === null) {
+            $pdo->prepare('UPDATE client_notifications SET read_at = CURRENT_TIMESTAMP(6) WHERE id = :id')->execute(['id' => $notificationId]);
+        }
+        $readStmt = $pdo->prepare('SELECT read_at FROM client_notifications WHERE id = :id');
+        $readStmt->execute(['id' => $notificationId]);
+        respond(200, ['data' => ['notification_id' => $notificationId, 'read_at' => (string) $readStmt->fetchColumn()]]);
     }
 
     if ($method === 'POST' && $resource === 'appointments') {
@@ -164,6 +231,11 @@ try {
         $startsAt = trim((string) ($data['starts_at'] ?? ''));
         $endsAt = trim((string) ($data['ends_at'] ?? ''));
         $reason = trim((string) ($data['reason'] ?? ''));
+        if ($current['role'] === 'client') {
+            $clientStmt = $pdo->prepare('SELECT id FROM clients WHERE user_id = :user');
+            $clientStmt->execute(['user' => $current['id']]);
+            $clientId = (string) ($clientStmt->fetchColumn() ?: '');
+        }
         if ($clientId === '' || $petId === '' || $startsAt === '' || $endsAt === '') respond(422, ['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'Client, patient, start time, and end time are required.']]);
         $start = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $startsAt, new DateTimeZone('Asia/Manila'));
         $end = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $endsAt, new DateTimeZone('Asia/Manila'));
@@ -186,15 +258,30 @@ try {
     }
 
     if ($method === 'PATCH' && ($parts[count($parts) - 2] ?? '') === 'appointments') {
-        requireUser($pdo);
+        $current = requireUser($pdo);
         $appointmentId = $resource;
         $data = input();
         $allowed = ['requested', 'scheduled', 'checked_in', 'in_progress', 'completed', 'cancelled', 'no_show'];
         $status = (string) ($data['status'] ?? '');
         if (!in_array($status, $allowed, true)) respond(422, ['error' => ['code' => 'INVALID_STATUS', 'message' => 'Unsupported appointment status.']]);
+        $appointmentStmt = $pdo->prepare('SELECT a.status, a.client_id, p.name AS pet_name, DATE_FORMAT(a.starts_at, "%M %e, %Y at %l:%i %p") AS appointment_time FROM appointments a JOIN pets p ON p.id = a.pet_id WHERE a.id = :id');
+        $appointmentStmt->execute(['id' => $appointmentId]);
+        $appointment = $appointmentStmt->fetch();
+        if (!$appointment) respond(404, ['error' => ['code' => 'APPOINTMENT_NOT_FOUND', 'message' => 'Appointment was not found.']]);
         $stmt = $pdo->prepare('UPDATE appointments SET status = :status, cancellation_reason = :reason WHERE id = :id AND status NOT IN ("completed", "cancelled", "no_show")');
         $stmt->execute(['id' => $appointmentId, 'status' => $status, 'reason' => $status === 'cancelled' ? trim((string) ($data['cancellation_reason'] ?? '')) : null]);
         if ($stmt->rowCount() === 0) respond(409, ['error' => ['code' => 'STATUS_TRANSITION_REJECTED', 'message' => 'This appointment cannot move to the requested status.']]);
+        if ($appointment['status'] === 'requested' && in_array($status, ['scheduled', 'cancelled'], true)) {
+            $message = $status === 'scheduled'
+                ? sprintf('Your appointment request for %s on %s was approved by the clinic.', $appointment['pet_name'], $appointment['appointment_time'])
+                : sprintf('Your appointment request for %s on %s was declined by the clinic.', $appointment['pet_name'], $appointment['appointment_time']);
+            $pdo->prepare('INSERT INTO client_notifications (id, client_id, type, message) VALUES (:id, :client, :type, :message)')->execute([
+                'id' => uuid(),
+                'client' => $appointment['client_id'],
+                'type' => $status === 'scheduled' ? 'appointment_approved' : 'appointment_declined',
+                'message' => $message,
+            ]);
+        }
         respond(200, ['data' => ['appointment_id' => $appointmentId, 'status' => $status]]);
     }
 
@@ -424,7 +511,7 @@ try {
     if ($method === 'GET' && $resource === 'emr') {
         requireUser($pdo);
         $count = (int) $pdo->query('SELECT COUNT(*) FROM pets WHERE status = "active"')->fetchColumn();
-        $rows = $pdo->query('SELECT p.id, p.name, p.species, p.breed, c.full_name AS client_name, MAX(v.visited_at) AS last_visit FROM pets p JOIN clients c ON c.id = p.client_id LEFT JOIN emr_visits v ON v.pet_id = p.id WHERE p.status = "active" GROUP BY p.id, p.name, p.species, p.breed, c.full_name ORDER BY p.name')->fetchAll();
+        $rows = $pdo->query('SELECT p.id, p.name, p.species, p.breed, p.status, c.full_name AS client_name, MAX(v.visited_at) AS last_visit FROM pets p JOIN clients c ON c.id = p.client_id LEFT JOIN emr_visits v ON v.pet_id = p.id GROUP BY p.id, p.name, p.species, p.breed, p.status, c.full_name ORDER BY p.name')->fetchAll();
         respond(200, ['data' => ['patient_count' => $count, 'patients' => $rows]]);
     }
 

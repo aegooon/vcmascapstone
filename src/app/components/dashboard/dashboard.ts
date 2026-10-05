@@ -136,7 +136,4 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/login']);
   }
 
-  triggerEmergency() {
-    this.actionMessage = 'Emergency entry opened. Contact the veterinarian on duty and document the case in EMR.';
-  }
 }

@@ -17,7 +17,7 @@ export interface ScheduleItem {
   ownerName: string;
   reason: string;
   room: string;
-  status: 'Scheduled' | 'Checked In' | 'In Progress' | 'Completed' | 'Cancelled';
+  status: 'Requested' | 'Scheduled' | 'Checked In' | 'In Progress' | 'Completed' | 'Cancelled';
   statusColor: string;
 }
 
@@ -124,7 +124,7 @@ export class SchedulingComponent implements OnInit, OnDestroy {
   }
 
   private displayStatus(status: string): ScheduleItem['status'] {
-    const values: Record<string, ScheduleItem['status']> = { requested: 'Scheduled', scheduled: 'Scheduled', checked_in: 'Checked In', in_progress: 'In Progress', completed: 'Completed', cancelled: 'Cancelled', no_show: 'Cancelled' };
+    const values: Record<string, ScheduleItem['status']> = { requested: 'Requested', scheduled: 'Scheduled', checked_in: 'Checked In', in_progress: 'In Progress', completed: 'Completed', cancelled: 'Cancelled', no_show: 'Cancelled' };
     return values[status] ?? 'Scheduled';
   }
 
@@ -227,8 +227,15 @@ export class SchedulingComponent implements OnInit, OnDestroy {
     if (item?.serverId) this.api.cancelAppointment(item.serverId).subscribe({ next: () => { this.schedules = this.schedules.map(schedule => schedule.id === id ? { ...schedule, status: 'Cancelled' } : schedule); } });
   }
 
+  approveSchedule(item: ScheduleItem): void {
+    if (!item.serverId) return;
+    this.api.updateAppointmentStatus(item.serverId, 'scheduled').subscribe({
+      next: () => { item.status = 'Scheduled'; },
+    });
+  }
+
   private apiStatus(status: ScheduleItem['status']): 'requested' | 'scheduled' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' {
-    const values: Record<ScheduleItem['status'], 'requested' | 'scheduled' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'> = { Scheduled: 'scheduled', 'Checked In': 'checked_in', 'In Progress': 'in_progress', Completed: 'completed', Cancelled: 'cancelled' };
+    const values: Record<ScheduleItem['status'], 'requested' | 'scheduled' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'> = { Requested: 'requested', Scheduled: 'scheduled', 'Checked In': 'checked_in', 'In Progress': 'in_progress', Completed: 'completed', Cancelled: 'cancelled' };
     return values[status];
   }
 
@@ -259,6 +266,8 @@ export class SchedulingComponent implements OnInit, OnDestroy {
         return 'bg-blue-100 text-blue-700';
       case 'In Progress':
         return 'bg-amber-100 text-amber-700';
+      case 'Requested':
+        return 'bg-violet-100 text-violet-700';
       case 'Completed':
         return 'bg-emerald-100 text-emerald-700';
       case 'Cancelled':

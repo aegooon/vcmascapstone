@@ -1,1 +1,12 @@
 :host { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  :host ::ng-deep *,
+  :host ::ng-deep *::before,
+  :host ::ng-deep *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
